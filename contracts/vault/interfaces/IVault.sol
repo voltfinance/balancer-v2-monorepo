@@ -16,10 +16,11 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "./IWETH.sol";
+import "./IAsset.sol";
 import "./IAuthorizer.sol";
 import "./IFlashLoanReceiver.sol";
-import "./IAsset.sol";
-import "./IWETH.sol";
+import "./ISignaturesValidator.sol";
 import "../ProtocolFeesCollector.sol";
 
 pragma solidity ^0.7.0;
@@ -28,7 +29,7 @@ pragma solidity ^0.7.0;
  * @dev Full external interface for the Vault core contract - no external or public methods exist in the contract that
  * don't override one of these declarations.
  */
-interface IVault {
+interface IVault is ISignaturesValidator {
     // Generalities about the Vault:
     //
     // - Whenever documentation refers to 'tokens', it strictly refers to ERC20-compliant token contracts. Tokens are
@@ -81,9 +82,13 @@ interface IVault {
     function hasAllowedRelayer(address user, address relayer) external view returns (bool);
 
     /**
-     * @dev Allows `relayer` to act as a relayer for the caller if `allowed` is true, and disallows it otherwise.
+     * @dev Allows `relayer` to act as a relayer for `sender` if `allowed` is true, and disallows it otherwise.
      */
-    function changeRelayerAllowance(address relayer, bool allowed) external;
+    function changeRelayerAllowance(
+        address sender,
+        address relayer,
+        bool allowed
+    ) external;
 
     // Internal Balance
     //
@@ -640,10 +645,14 @@ interface IVault {
     //
     // Each token registered for a Pool can be assigned an Asset Manager, which is able to freely withdraw the Pool's
     // tokens from the Vault, deposit them, or assign arbitrary values to its `managed` balance (see
-    // `getPoolTokenInfo`). This makes them extremely powerful and dangerous, as they can not only steal a Pool's
-    // tokens, but also manipulate its prices. However, a properly designed Asset Manager smart contract can be used
-    // for the Pool's benefit, for example by lending unused tokens out for interest, or using them to participate
-    // in voting protocols.
+    // `getPoolTokenInfo`). This makes them extremely powerful and dangerous. Even if an Asset Manager only directly
+    // controls one of the tokens in a Pool, a malicious manager could set that token's balance to manipulate the
+    // prices of the other tokens, and then drain the Pool with swaps. The risk of using Asset Managers is therefore
+    // not constrained to the tokens they are managing, but extends to the entire Pool's holdings.
+    //
+    // However, a properly designed Asset Manager smart contract can be safely used for the Pool's benefit,
+    // for example by lending unused tokens out for interest, or using them to participate in voting protocols.
+    //
     // This concept is unrelated to the IAsset interface.
 
     /**
