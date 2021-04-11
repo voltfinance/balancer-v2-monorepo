@@ -219,7 +219,7 @@ abstract contract PoolAssets is
         address recipient,
         PoolBalanceChange memory change
     ) internal nonReentrant withRegisteredPool(poolId) authenticateFor(sender) {
-        InputHelpers.ensureInputLengthMatch(change.assets.length, change.limits.length);
+        // InputHelpers.ensureInputLengthMatch(change.assets.length, change.limits.length);
 
         IERC20[] memory tokens = _translateToIERC20(change.assets);
         bytes32[] memory balances = _validateTokensAndGetBalances(poolId, tokens);
@@ -282,7 +282,7 @@ abstract contract PoolAssets is
                 change.userData
             );
 
-        InputHelpers.ensureInputLengthMatch(balances.length, amounts.length, dueProtocolFeeAmounts.length);
+        // InputHelpers.ensureInputLengthMatch(balances.length, amounts.length, dueProtocolFeeAmounts.length);
 
         finalBalances = kind == PoolBalanceChangeKind.JOIN
             ? _receiveAssets(sender, change, balances, amounts, dueProtocolFeeAmounts)
