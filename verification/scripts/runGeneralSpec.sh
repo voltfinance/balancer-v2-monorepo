@@ -3,4 +3,4 @@ certoraRun verification/harness/simplifiedVaultHarness.sol \
   --solc solc7.6 \
   --cache balancerGeneral \
   --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2 \
-  --staging --msg "run general spec rule changeRelayerAllowanceIntegrity"
+  --staging --msg "run general spec rule changeRelayerAllowanceIntegrity when changeRelayerAllowance is not envfree"

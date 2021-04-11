@@ -1,10 +1,9 @@
 methods {
     hasAllowedRelayer(address, address) returns bool envfree
-    changeRelayerAllowance(address, address, bool) envfree
-    Harness_getGeneralPoolTotalBalance(bytes32, address) returns uint256 envfree
-    Harness_minimalSwapInfoPoolIsNotZero(bytes32, address) returns bool envfree
-    Harness_twoTokenPoolIsNotZero(bytes32, address) returns bool envfree
-    Harness_isPoolRegistered(bytes32) returns bool envfree
+    // Harness_getGeneralPoolTotalBalance(bytes32, address) returns uint256 envfree
+    // Harness_minimalSwapInfoPoolIsNotZero(bytes32, address) returns bool envfree
+    // Harness_twoTokenPoolIsNotZero(bytes32, address) returns bool envfree
+    // Harness_isPoolRegistered(bytes32) returns bool envfree
 }
 
 // rule increasingFees {
@@ -27,7 +26,7 @@ rule changeRelayerAllowanceIntegrity {
     bool allowed;
 
     env e;
-    changeRelayerAllowance(e.msg.sender, relayer, allowed);
+    changeRelayerAllowance(e, e.msg.sender, relayer, allowed);
 
     bool allowance = hasAllowedRelayer(e.msg.sender, relayer);
     assert allowance == allowed, "allowance was set right before this check";
