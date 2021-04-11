@@ -233,8 +233,8 @@ abstract contract PoolAssets is
         }
 
         // We can unsafely cast to int256 because balances are actually stored as uint112
-        bool positive = kind == PoolBalanceChangeKind.JOIN;
-        emit PoolBalanceChanged(poolId, sender, tokens, _unsafeCastToInt256(amounts, positive), dueProtocolFeeAmounts);
+        // bool positive = kind == PoolBalanceChangeKind.JOIN;
+        // emit PoolBalanceChanged(poolId, sender, tokens, _unsafeCastToInt256(amounts, positive), dueProtocolFeeAmounts);
     }
 
     function _callPoolBalanceChange(
@@ -345,7 +345,7 @@ abstract contract PoolAssets is
             _generalPoolCashToManaged(poolId, token, amount);
         }
 
-        token.safeTransfer(msg.sender, amount);
+        token.transfer(msg.sender, amount);
 
         // Due to how balances are stored internally we know `amount` will always fit in an int256
         return -int256(amount);
@@ -365,7 +365,7 @@ abstract contract PoolAssets is
             _generalPoolManagedToCash(poolId, token, amount);
         }
 
-        token.safeTransferFrom(msg.sender, address(this), amount);
+        token.transferFrom(msg.sender, address(this), amount);
 
         // Due to how balances are stored internally we know `amount` will always fit in an int256
         return int256(amount);

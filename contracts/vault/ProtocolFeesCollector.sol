@@ -69,7 +69,7 @@ contract ProtocolFeesCollector is Authentication, ReentrancyGuard {
         for (uint256 i = 0; i < tokens.length; ++i) {
             IERC20 token = tokens[i];
             uint256 amount = amounts[i];
-            token.safeTransfer(recipient, amount);
+            token.transfer(recipient, amount);
         }
     }
 

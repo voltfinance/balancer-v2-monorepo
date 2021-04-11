@@ -134,7 +134,7 @@ abstract contract UserBalance is ReentrancyGuard, AssetTransfersHandler, VaultAu
         address recipient,
         uint256 amount
     ) private {
-        token.safeTransferFrom(sender, recipient, amount);
+        token.transferFrom(sender, recipient, amount);
         emit ExternalBalanceTransfer(token, sender, recipient, amount);
     }
 

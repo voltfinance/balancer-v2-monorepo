@@ -55,7 +55,7 @@ abstract contract FlashLoanProvider is Fees, ReentrancyGuard, EmergencyPeriod {
             preLoanBalances[i] = token.balanceOf(address(this));
             feeAmounts[i] = _calculateFlashLoanFee(amount);
 
-            token.safeTransfer(address(receiver), amount);
+            token.transfer(address(receiver), amount);
         }
 
         receiver.receiveFlashLoan(tokens, amounts, feeAmounts, receiverData);

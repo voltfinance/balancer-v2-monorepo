@@ -74,7 +74,7 @@ abstract contract AssetTransfersHandler is AssetHelpers {
             }
 
             if (amount > 0) {
-                token.safeTransferFrom(sender, address(this), amount);
+                token.transferFrom(sender, address(this), amount);
             }
         }
     }
@@ -112,7 +112,7 @@ abstract contract AssetTransfersHandler is AssetHelpers {
             if (toInternalBalance) {
                 _increaseInternalBalance(recipient, token, amount);
             } else {
-                token.safeTransfer(recipient, amount);
+                token.transfer(recipient, amount);
             }
         }
     }

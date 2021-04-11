@@ -67,7 +67,7 @@ abstract contract Fees is IVault {
 
     function _payFee(IERC20 token, uint256 amount) internal {
         if (amount > 0) {
-            token.safeTransfer(address(_getProtocolFeesCollector()), amount);
+            token.transfer(address(_getProtocolFeesCollector()), amount);
         }
     }
 }

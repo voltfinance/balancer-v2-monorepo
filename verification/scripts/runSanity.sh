@@ -3,5 +3,4 @@ certoraRun contracts/vault/Vault.sol \
   --solc solc7.6 \
   --settings -t=300,-recursionEntryLimit=6 \
   --cache balancer_sanity \
-  --debug \
-  --staging --msg "Vault sanity"
+  --staging --msg "Vault sanity with unsafe transfers"
