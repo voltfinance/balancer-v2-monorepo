@@ -1,0 +1,1 @@
+perl -0777 -i -pe 's/uint256 private constant/uint256 internal constant/g' contracts/vault/ProtocolFeesCollector.sol
