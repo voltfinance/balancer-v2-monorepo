@@ -110,10 +110,4 @@ contract simplifiedVaultHarness is Vault {
 
     function init_state() public pure {}
 
-    function Harness_getAnInternalBalance(address user, IERC20 token) public view returns (uint256) {
-        IERC20[] memory token_array = new IERC20[](1);
-        token_array[0] = token;
-        uint256 result = getInternalBalance(user, token_array)[0];
-        return result;
-    }
 }

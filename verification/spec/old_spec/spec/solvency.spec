@@ -3,7 +3,7 @@ using DummyERC20 as ERC20
 methods {
 
     Harness_get_collected_fee_of_token(address) returns uint256 envfree
-    Harness_getAnInternalBalance(address, address) returns uint256 envfree
+    _getInternalBalance(address, address) returns uint256 envfree
     Harness_withdrawFromInternalBalance(address, address) envfree
 
     Harness_poolIsGeneral(bytes32) envfree
@@ -54,7 +54,7 @@ rule vault_never_changes_total_supply {
 
 
 rule vault_has_no_internal_balance {
-    uint256 init_vault_internal_balance = Harness_getAnInternalBalance(currentContract, ERC20.myAddress());
+    uint256 init_vault_internal_balance = _getInternalBalance(currentContract, ERC20.myAddress());
     require init_vault_internal_balance == 0;
 
     method f;
@@ -62,7 +62,7 @@ rule vault_has_no_internal_balance {
     calldataarg a;
     f(e, a);
 
-    uint256 final_vault_internal_balance = Harness_getAnInternalBalance(currentContract, ERC20.myAddress());
+    uint256 final_vault_internal_balance = _getInternalBalance(currentContract, ERC20.myAddress());
     assert final_vault_internal_balance == 0;
 }
 
@@ -93,7 +93,7 @@ rule fees_less_than_vault_funds {
 
     if f.selector == withdrawFromInternalBalance(address, address[], uint256[], address).selector {
         address sender;
-        uint256 sender_internal_balance = Harness_getAnInternalBalance(sender, ERC20.myAddress());
+        uint256 sender_internal_balance = _getInternalBalance(sender, ERC20.myAddress());
         mathint min_vault_balance = fees_pre + sender_internal_balance;
         require min_vault_balance <= vault_balance_pre;
 

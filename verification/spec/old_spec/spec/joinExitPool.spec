@@ -1,6 +1,6 @@
 methods {
     Harness_getACollectedFee(address) returns uint256 envfree
-    Harness_getAnInternalBalance(address, address) returns uint256 envfree
+    _getInternalBalance(address, address) returns uint256 envfree
     Harness_poolIsTwoTokens(bytes32) returns bool envfree
     getTokenBalance(address, address) returns uint256 envfree
     Harness_poolIsGeneral(bytes32) returns bool envfree
@@ -129,11 +129,11 @@ rule joinPoolCappedUserLoss {
     bool fromInternalBalance;
 
     uint256 init_erc_balance = getTokenBalance(sender, token);
-    uint256 init_internal_balance = Harness_getAnInternalBalance(sender, token);
+    uint256 init_internal_balance = _getInternalBalance(sender, token);
 
     Harness_singleJoinPool(e, poolId, sender, recipient, token, maxAmountIn, fromInternalBalance);
     uint256 final_erc_balance = getTokenBalance(sender, token);
-    uint256 final_internal_balance = Harness_getAnInternalBalance(sender, token);
+    uint256 final_internal_balance = _getInternalBalance(sender, token);
 
     mathint erc_loss = init_erc_balance - final_erc_balance;
     mathint internal_loss = init_internal_balance - final_internal_balance;
@@ -216,11 +216,11 @@ rule exitPoolMinUserProfit {
     bool toInternalBalance;
 
     uint256 init_erc_balance = getTokenBalance(recipient, token);
-    uint256 init_internal_balance = Harness_getAnInternalBalance(recipient, token);
+    uint256 init_internal_balance = _getInternalBalance(recipient, token);
 
     Harness_singleExitPool(e, poolId, sender, recipient, token, minAmountOut, toInternalBalance);
     uint256 final_erc_balance = getTokenBalance(recipient, token);
-    uint256 final_internal_balance = Harness_getAnInternalBalance(recipient, token);
+    uint256 final_internal_balance = _getInternalBalance(recipient, token);
 
     mathint erc_profit = final_erc_balance - init_erc_balance;
     mathint internal_profit = final_internal_balance - init_internal_balance;
