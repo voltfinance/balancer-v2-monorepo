@@ -16,11 +16,7 @@ contract simplifiedVaultHarness is Vault {
     */
     using BalanceAllocation for bytes32;
 
-    constructor(IAuthorizer authorizer,
-        IWETH weth,
-        uint256 emergencyPeriod,
-        uint256 emergencyPeriodCheckExtension
-    ) Vault(authorizer, weth, emergencyPeriod, emergencyPeriodCheckExtension) { }
+    constructor(IAuthorizer authorizer) Vault(authorizer) {}
 
     /* Bypassing the external Authorizer */
 
@@ -36,15 +32,8 @@ contract simplifiedVaultHarness is Vault {
 
     mapping(uint256 => uint256) private calc_fee; // All fee types will return the same value for simplicity
 
-    function _calculateProtocolWithdrawFeeAmount(uint256 amount) override internal view returns (uint256) {
-        if (_protocolWithdrawFee == 0) return 0;
-        uint256 fee = calc_fee[amount];
-        require(fee < amount);
-        return fee;
-    }
-
-    function _calculateProtocolFlashLoanFeeAmount(uint256 amount) override internal view returns (uint256) {
-        if (_protocolFlashLoanFee == 0) return 0;
+    function _calculateFlashLoanFee(uint256 amount) override internal view returns (uint256) {
+        if (_getProtocolFeesCollector().getFlashLoanFee() == 0) return 0; // havoc as CONSTANT
         uint256 fee = calc_fee[amount];
         require(fee < amount);
         return fee;
@@ -57,7 +46,7 @@ contract simplifiedVaultHarness is Vault {
     function Harness_getACollectedFee(IERC20 token) public view returns (uint256) {
         IERC20[] memory token_array = new IERC20[](1);
         token_array[0] = token;
-        uint256 result = _getCollectedFees(token_array)[0];
+        uint256 result = _getProtocolFeesCollector().getCollectedFees(token_array)[0]; // havoc as DISPATCHER
         return result;
     }
 
@@ -113,7 +102,7 @@ contract simplifiedVaultHarness is Vault {
     function Harness_getAnInternalBalance(address user, IERC20 token) public view returns (uint256) {
         IERC20[] memory token_array = new IERC20[](1);
         token_array[0] = token;
-        uint256 result = getInternalBalance(user, token_array)[0];
+        uint256 result = _getInternalBalance(user, token_array)[0];
         return result;
     }
 }
