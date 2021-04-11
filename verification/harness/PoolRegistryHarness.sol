@@ -1,13 +1,16 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../../contracts/vault/Fees.sol";
 import "../../contracts/vault/Vault.sol";
 import "../../contracts/vault/interfaces/IAuthorizer.sol";
-import "../../contracts/vault/Authorization.sol";
+//import "../../contracts/vault/Authorization.sol";
 
 contract PoolRegistryHarness is Vault {
-    constructor(IAuthorizer authorizer) Vault(authorizer) { }
+    constructor(IAuthorizer authorizer,
+        IWETH weth,
+        uint256 emergencyPeriod,
+        uint256 emergencyPeriodCheckExtension
+    ) Vault(authorizer, weth, emergencyPeriod, emergencyPeriodCheckExtension) { }
 
     function toPoolId(address pool, uint specialization, uint80 nonce) public pure returns (bytes32) {
         PoolSpecialization p;
