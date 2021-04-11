@@ -1,36 +1,35 @@
 methods {
-    hasAllowedRelayer(address, address) returns bool envfree
+    // hasAllowedRelayer(address, address) returns bool envfree
     // Harness_getGeneralPoolTotalBalance(bytes32, address) returns uint256 envfree
     // Harness_minimalSwapInfoPoolIsNotZero(bytes32, address) returns bool envfree
     // Harness_twoTokenPoolIsNotZero(bytes32, address) returns bool envfree
     // Harness_isPoolRegistered(bytes32) returns bool envfree
 }
 
-// rule increasingFees {
-//     calldataarg tokens;
-//     env e;
-//     uint256 free_pre = Harness_getACollectedFee(e, tokens); // Gets the collected fees for one type of token
-
-//     method f;
-//     require f.selector != withdrawCollectedFees(address[],uint256[],address).selector;
-//     calldataarg a;
-//     f(e, a);
-
-//     uint256 free_post = Harness_getACollectedFee(e, tokens); // Get the collected fees for the same token type
-
-//     assert free_post >= free_pre, "The collected fees cannot decrease unless they are withdrawn";
-// } 
-
-rule changeRelayerAllowanceIntegrity {
-    address relayer;
-    bool allowed;
-
+rule increasingFees {
+    calldataarg tokens;
     env e;
-    changeRelayerAllowance(e, e.msg.sender, relayer, allowed);
+    uint256 free_pre = Harness_getACollectedFee(e, tokens); // Gets the collected fees for one type of token
 
-    bool allowance = hasAllowedRelayer(e.msg.sender, relayer);
-    assert allowance == allowed, "allowance was set right before this check";
-}
+    method f;
+    calldataarg a;
+    f(e, a);
+
+    uint256 free_post = Harness_getACollectedFee(e, tokens); // Get the collected fees for the same token type
+
+    assert free_post >= free_pre, "The collected fees cannot decrease unless they are withdrawn";
+} 
+
+// rule changeRelayerAllowanceIntegrity {
+//     address relayer;
+//     bool allowed;
+
+//     env e;
+//     changeRelayerAllowance(e, e.msg.sender, relayer, allowed);
+
+//     bool allowance = hasAllowedRelayer(e.msg.sender, relayer);
+//     assert allowance == allowed, "allowance was set right before this check";
+// }
 
 // rule general_pool_positive_total_if_registered {
 //     bytes32 poolId;
