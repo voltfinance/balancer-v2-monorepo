@@ -1,12 +1,12 @@
 methods {
-    Harness_getAnInternalBalance(address, address) returns uint256 envfree
+    _getInternalBalance(address, address) returns uint256 envfree
     Harness_isVaultRelayer() returns bool envfree
 }
 
 rule internalBalanceChanges {
     address user;
     address token;
-    uint256 balance_pre = Harness_getAnInternalBalance(user, token);
+    uint256 balance_pre = _getInternalBalance(user, token);
 
     method f;
     require f.selector != transferInternalBalance(address, address[], uint256[], address[]).selector;
@@ -19,7 +19,7 @@ rule internalBalanceChanges {
     env e;
     f(e,a);
 
-    uint256 balance_post = Harness_getAnInternalBalance(user, token);
+    uint256 balance_post = _getInternalBalance(user, token);
 
     if (f.selector == 
             depositToInternalBalance(address, address[], uint256[], address).selector ||
@@ -38,14 +38,14 @@ rule internalBalanceChanges {
 rule only_authorizer_can_decrease_internal_balance {
     address user;
     address token;
-    uint256 init_balance = Harness_getAnInternalBalance(user, token);
+    uint256 init_balance = _getInternalBalance(user, token);
 
     method f;
     env e;
     calldataarg a;
     f(e, a);
 
-    uint256 final_balance = Harness_getAnInternalBalance(user, token);
+    uint256 final_balance = _getInternalBalance(user, token);
     mathint balance_diff = final_balance - init_balance;
     bool authorized = Harness_isAuthenticatedByUser(e, user);
 

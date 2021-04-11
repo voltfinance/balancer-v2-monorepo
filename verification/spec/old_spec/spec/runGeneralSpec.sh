@@ -1,4 +1,4 @@
-certoraRun spec/harness/simplifiedVaultHarness.sol \
+certoraRun verification/spec/harness/simplifiedVaultHarness.sol \
   --verify simplifiedVaultHarness:spec/general_spec.spec \
   --solc solc7.6 \
   --cache balancerGeneral \

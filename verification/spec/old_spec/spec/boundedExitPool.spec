@@ -1,5 +1,5 @@
 methods {
-    Harness_getAnInternalBalance(address, address) returns uint256 envfree
+    _getInternalBalance(address, address) returns uint256 envfree
     getTokenBalance(address, address) returns uint256 envfree
     Harness_getGeneralPoolTotalBalance(bytes32, address) returns uint256 envfree
     Harness_poolIsGeneral(bytes32) returns bool envfree
@@ -50,14 +50,14 @@ rule exit_pool_upper_bound {
     bool toInternalBalance;
 
     uint256 init_erc_balance = getTokenBalance(recipient, token);
-    uint256 init_internal_balance = Harness_getAnInternalBalance(recipient, token);
+    uint256 init_internal_balance = _getInternalBalance(recipient, token);
     uint256 init_pool_balance = Harness_get_pool_cash_like_exit_pool(poolId, token);
 
 
     Harness_singleExitPool(e, poolId, sender, recipient, token, minAmountOut, toInternalBalance);
 
     uint256 final_erc_balance = getTokenBalance(recipient, token);
-    uint256 final_internal_balance = Harness_getAnInternalBalance(recipient, token);
+    uint256 final_internal_balance = _getInternalBalance(recipient, token);
     uint256 erc_profit = final_erc_balance - init_erc_balance;
     uint256 internal_profit = final_internal_balance - init_internal_balance;
     uint256 total_profit = erc_profit + internal_profit;

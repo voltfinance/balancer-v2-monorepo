@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import "../../contracts/vault/Fees.sol";
 import "../../contracts/vault/Vault.sol";
 import "../../contracts/vault/interfaces/IAuthorizer.sol";
-import "../../contracts/vault/Authorization.sol";
+import "../../contracts/vault/VaultAuthorization.sol";
 
 contract simplifiedVaultHarness is Vault {
     /*
@@ -16,7 +16,11 @@ contract simplifiedVaultHarness is Vault {
     */
     using BalanceAllocation for bytes32;
 
-    constructor(IAuthorizer authorizer) Vault(authorizer) {}
+    constructor(IAuthorizer authorizer,
+        IWETH weth,
+        uint256 emergencyPeriod,
+        uint256 emergencyPeriodCheckExtension
+    ) Vault(authorizer, weth, emergencyPeriod, emergencyPeriodCheckExtension) { }
 
     /* Bypassing the external Authorizer */
 
@@ -106,10 +110,4 @@ contract simplifiedVaultHarness is Vault {
 
     function init_state() public pure {}
 
-    function Harness_getAnInternalBalance(address user, IERC20 token) public view returns (uint256) {
-        IERC20[] memory token_array = new IERC20[](1);
-        token_array[0] = token;
-        uint256 result = getInternalBalance(user, token_array)[0];
-        return result;
-    }
 }
