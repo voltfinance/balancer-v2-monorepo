@@ -18,6 +18,8 @@ methods {
     balanceOf(address) returns uint256 envfree => DISPATCHER(true)
     ERC20.totalSupply() returns uint256 envfree
 
+    nop() => NONDET // sendValue() replacement
+
     // pool interface commands
     0xd5c096c4 => NONDET // onJoinPool
     0x74f3b009 => NONDET // onExitPool
