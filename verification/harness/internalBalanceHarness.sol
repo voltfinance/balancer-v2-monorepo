@@ -8,7 +8,11 @@ contract internalBalanceHarness is simplifiedVaultHarness {
     This harness exposes information used by rules caring about the internal balance.
     */
 
-    constructor(IAuthorizer authorizer) simplifiedVaultHarness(authorizer) {}
+    constructor(IAuthorizer authorizer,
+        IWETH weth,
+        uint256 emergencyPeriod,
+        uint256 emergencyPeriodCheckExtension
+    ) simplifiedVaultHarness(authorizer, weth, emergencyPeriod, emergencyPeriodCheckExtension) { }
 
     function Harness_isAuthenticatedByUser(address user) public view returns (bool) {
         if (user == msg.sender) return true;
