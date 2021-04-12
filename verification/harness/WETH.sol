@@ -21,12 +21,12 @@ pragma solidity ^0.7.0;
 // import "../vault/interfaces/IWETH.sol";
 
 // contract WETH is AccessControl, IWETH {
-contract WETH{
+contract WETH {
     // bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
-    string public name = "Wrapped Ether";
-    string public symbol = "WETH";
-    uint8 public decimals = 18;
+    // string public name = "Wrapped Ether";
+    // string public symbol = "WETH";
+    // uint8 public decimals = 18;
 
     event Deposit(address indexed dst, uint256 wad);
     event Withdrawal(address indexed src, uint256 wad);
@@ -86,6 +86,7 @@ contract WETH{
     // ) public override returns (bool) {
     ) public returns (bool) {
         require(balanceOf[src] >= wad, "INSUFFICIENT_BALANCE");
+        require(balanceOf[dst] + wad >= balanceOf[dst], "overflow");
 
         if (src != msg.sender && allowance[src][msg.sender] != uint256(-1)) {
             require(allowance[src][msg.sender] >= wad, "INSUFFICIENT_ALLOWANCE");

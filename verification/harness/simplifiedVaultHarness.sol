@@ -22,6 +22,14 @@ contract simplifiedVaultHarness is Vault {
         uint256 emergencyPeriodCheckExtension
     ) Vault(authorizer, weth, emergencyPeriod, emergencyPeriodCheckExtension) { }
 
+    /* this function does nothing */
+    function queryBatchSwap(
+        SwapKind kind,
+        BatchSwapStep[] memory swaps,
+        IAsset[] memory assets,
+        FundManagement memory funds
+    ) external override returns (int256[] memory) {}
+
     /* Bypassing the external Authorizer */
 
 

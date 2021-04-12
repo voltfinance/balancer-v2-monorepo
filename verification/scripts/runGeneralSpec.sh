@@ -7,4 +7,4 @@ certoraRun verification/harness/simplifiedVaultHarness.sol contracts/vault/Proto
   --cache balancerGeneral \
   --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2,-t=20 \
   --rule increasingFees \
-  --staging --msg "general spec r increasingFees with weth and SHORT TIMEOUT to see call resolution and Nope"
+  --staging --msg "general spec r increasingFees without WETH overflow"

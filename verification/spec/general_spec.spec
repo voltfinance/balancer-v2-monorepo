@@ -1,3 +1,8 @@
+using DummyERC20 as ERC20
+using WETH as weth
+using Borrower as borrower
+using ProtocolFeesCollector as feesCollector
+
 methods {
     hasAllowedRelayer(address, address) returns bool envfree
     Harness_getGeneralPoolTotalBalance(bytes32, address) returns uint256 envfree
@@ -23,6 +28,14 @@ methods {
     receiveFlashLoan(address[], uint256[], uint256[], bytes) => DISPATCHER(true) // maybe NONDET?
 }
 
+function legalAddress(address suspect) {
+    require suspect != currentContract;
+    require suspect != ERC20;
+    require suspect != weth;
+    require suspect != borrower;
+    require suspect != feesCollector;
+}
+
 rule increasingFees {
     calldataarg tokens;
     env e;
@@ -30,11 +43,12 @@ rule increasingFees {
 
     method f;
     calldataarg a;
+    legalAddress(e.msg.sender);
     f(e, a);
 
     uint256 free_post = Harness_getACollectedFee(e, tokens); // Get the collected fees for the same token type
 
-    assert free_post >= free_pre, "The collected fees cannot decrease unless they are withdrawn";
+    assert free_post >= free_pre, "The collected fees cannot decrease by any vault action";
 } 
 
 rule changeRelayerAllowanceIntegrity {
@@ -56,8 +70,8 @@ rule general_pool_positive_total_if_registered {
     require init_tot_balance > 0 => init_registered;
 
     method f;
-    require f.selector != 0x945bcec9; //batch swap
     env e;
+    legalAddress(e.msg.sender);
     calldataarg a;
     f(e, a);
 
@@ -68,8 +82,6 @@ rule general_pool_positive_total_if_registered {
 
 rule minimal_swap_info_pool_positive_total_if_registered {
     method f;
-    require f.selector != 0x945bcec9; //batch swap
-
     bytes32 poolId;
     address token;
     bool init_positive_balance = Harness_minimalSwapInfoPoolIsNotZero(poolId, token);
@@ -77,6 +89,7 @@ rule minimal_swap_info_pool_positive_total_if_registered {
     require init_positive_balance => init_registered;
 
     env e;
+    legalAddress(e.msg.sender);
     calldataarg a;
     f(e, a);
 
