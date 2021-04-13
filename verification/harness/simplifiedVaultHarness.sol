@@ -39,13 +39,25 @@ contract simplifiedVaultHarness is Vault {
         require(authorizations[msg.sender]);
     }
 
+    // bypassing signatures
+
+    mapping(address => bool) internal has_signature;
+
+    function _validateSignature(address user, uint256 errorCode) override internal {
+        require(has_signature[user]);
+    }
+
+    function Harness_has_valid_signature(address user) public returns (bool) {
+        return has_signature[user];
+    }
+
     /* Simplifying fee calculations */
 
 
     mapping(uint256 => uint256) private calc_fee; // All fee types will return the same value for simplicity
 
     function _calculateFlashLoanFee(uint256 amount) override internal view returns (uint256) {
-        if (_getProtocolFeesCollector().getFlashLoanFee() == 0) return 0; // havoc as CONSTANT
+        if (getProtocolFeesCollector().getFlashLoanFee() == 0) return 0; // havoc as CONSTANT
         uint256 fee = calc_fee[amount];
         require(fee < amount);
         return fee;
@@ -58,7 +70,7 @@ contract simplifiedVaultHarness is Vault {
     function Harness_getACollectedFee(IERC20 token) public view returns (uint256) {
         IERC20[] memory token_array = new IERC20[](1);
         token_array[0] = token;
-        uint256 result = _getProtocolFeesCollector().getCollectedFees(token_array)[0]; // havoc as DISPATCHER
+        uint256 result = getProtocolFeesCollector().getCollectedFees(token_array)[0]; // havoc as DISPATCHER
         return result;
     }
 
@@ -81,16 +93,19 @@ contract simplifiedVaultHarness is Vault {
         return specializations[poolId] == PoolSpecialization.GENERAL;
     }
 
+    function Harness_poolIsMinimal(bytes32 poolId) public view returns (bool) {
+        return specializations[poolId] == PoolSpecialization.MINIMAL_SWAP_INFO;
+    }
+
     //// exposers
 
     function Harness_isPoolRegistered(bytes32 poolId) public view returns (bool){
         return _isPoolRegistered[poolId];
     }
 
-    function Harness_getGeneralPoolTotalBalance(bytes32 poolId, IERC20 token) public view returns (uint256) {
+    function Harness_GeneralPoolTotalBalanceIsNotZero(bytes32 poolId, IERC20 token) public view returns (bool) {
         bytes32 currentBalance = _getGeneralPoolBalance(poolId, token);
-        // return currentBalance.total();
-        return uint256(currentBalance);
+        return currentBalance.isNotZero();
     }
 
     /**

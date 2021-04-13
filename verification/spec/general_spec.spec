@@ -5,9 +5,12 @@ using ProtocolFeesCollector as feesCollector
 
 methods {
     hasAllowedRelayer(address, address) returns bool envfree
-    Harness_getGeneralPoolTotalBalance(bytes32, address) returns uint256 envfree
+    Harness_GeneralPoolTotalBalanceIsNotZero(bytes32, address) returns bool envfree
     Harness_minimalSwapInfoPoolIsNotZero(bytes32, address) returns bool envfree
     Harness_isPoolRegistered(bytes32) returns bool envfree
+    Harness_has_valid_signature(address) returns bool envfree
+    Harness_poolIsMinimal(bytes32) returns bool envfree
+    Harness_poolIsGeneral(bytes32) returns bool envfree
 
     // token functions
     transfer(address, uint256) returns bool envfree => DISPATCHER(true)
@@ -25,7 +28,9 @@ methods {
     0x74f3b009 => NONDET // onExitPool
 
     // Others
-    receiveFlashLoan(address[], uint256[], uint256[], bytes) => DISPATCHER(true) // maybe NONDET?
+    receiveFlashLoan(address[], uint256[], uint256[], bytes) => DISPATCHER(true)
+
+    nop() => NONDET
 }
 
 function legalAddress(address suspect) {
@@ -36,14 +41,30 @@ function legalAddress(address suspect) {
     require suspect != feesCollector;
 }
 
+function noIllegalRelayer(address suspect) {
+    require !hasAllowedRelayer(currentContract, suspect);
+    require !hasAllowedRelayer(ERC20, suspect);
+    require !hasAllowedRelayer(weth, suspect);
+    require !hasAllowedRelayer(borrower, suspect);
+    require !hasAllowedRelayer(feesCollector, suspect);
+
+    require !Harness_has_valid_signature(currentContract);
+    require !Harness_has_valid_signature(ERC20);
+    require !Harness_has_valid_signature(weth);
+    require !Harness_has_valid_signature(borrower);
+    require !Harness_has_valid_signature(feesCollector);
+}
+
 rule increasingFees {
     calldataarg tokens;
     env e;
     uint256 free_pre = Harness_getACollectedFee(e, tokens); // Gets the collected fees for one type of token
 
     method f;
+    require f.selector != 0x945bcec9; // batchswap
     calldataarg a;
     legalAddress(e.msg.sender);
+    noIllegalRelayer(e.msg.sender);
     f(e, a);
 
     uint256 free_post = Harness_getACollectedFee(e, tokens); // Get the collected fees for the same token type
@@ -64,25 +85,33 @@ rule changeRelayerAllowanceIntegrity {
 
 rule general_pool_positive_total_if_registered {
     bytes32 poolId;
+    require Harness_poolIsGeneral(poolId);
+
     address token;
-    uint256 init_tot_balance = Harness_getGeneralPoolTotalBalance(poolId, token);
+    bool init_tot_balance_positive = Harness_GeneralPoolTotalBalanceIsNotZero(poolId, token);
     bool init_registered = Harness_isPoolRegistered(poolId);
-    require init_tot_balance > 0 => init_registered;
+    require init_tot_balance_positive => init_registered;
 
     method f;
+    require f.selector != 0x945bcec9; // batchswap
     env e;
     legalAddress(e.msg.sender);
+    noIllegalRelayer(e.msg.sender);
     calldataarg a;
     f(e, a);
 
-    uint256 fin_tot_balance = Harness_getGeneralPoolTotalBalance(poolId, token);
+    bool fin_tot_balance_positive = Harness_GeneralPoolTotalBalanceIsNotZero(poolId, token);
     bool fin_registered = Harness_isPoolRegistered(poolId);
-    assert fin_tot_balance > 0 => fin_registered;
+    assert fin_tot_balance_positive => fin_registered;
 }
 
 rule minimal_swap_info_pool_positive_total_if_registered {
     method f;
+    require f.selector != 0x945bcec9; // batchswap
+
     bytes32 poolId;
+    require Harness_poolIsMinimal(poolId);
+
     address token;
     bool init_positive_balance = Harness_minimalSwapInfoPoolIsNotZero(poolId, token);
     bool init_registered = Harness_isPoolRegistered(poolId);
@@ -90,6 +119,7 @@ rule minimal_swap_info_pool_positive_total_if_registered {
 
     env e;
     legalAddress(e.msg.sender);
+    noIllegalRelayer(e.msg.sender);
     calldataarg a;
     f(e, a);
 

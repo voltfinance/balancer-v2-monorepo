@@ -20,6 +20,8 @@ pragma solidity ^0.7.0;
 
 // import "../vault/interfaces/IWETH.sol";
 
+interface Nothing { function nop() external payable; }
+
 // contract WETH is AccessControl, IWETH {
 contract WETH {
     // bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -53,7 +55,8 @@ contract WETH {
     function withdraw(uint256 wad) public {
         require(balanceOf[msg.sender] >= wad, "INSUFFICIENT_BALANCE");
         balanceOf[msg.sender] -= wad;
-        msg.sender.transfer(wad);
+        // msg.sender.nop(wad);
+        Nothing(msg.sender).nop{value: wad}();
     }
 
     // // For testing purposes - this creates WETH that cannot be redeemed for ETH via 'withdraw'
