@@ -6,4 +6,5 @@ certoraRun verification/harness/internalBalanceHarness.sol contracts/vault/Proto
   --solc solc7.6 \
   --cache balancerInternalBalance \
   --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2 \
-  --staging --msg "checking internalBalance with linking and other contracts"
+  --rule vault_has_no_relayers \
+  --staging --msg "internalBalance rule vault_has_no_relayers first try"

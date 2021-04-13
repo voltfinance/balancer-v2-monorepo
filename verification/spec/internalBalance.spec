@@ -1,5 +1,5 @@
 methods {
-    _getInternalBalance(address, address) returns uint256 envfree
+    Harness_getAnInternalBalance(address, address) returns uint256 envfree 
     Harness_isVaultRelayer() returns bool envfree
 
     // token functions
@@ -26,43 +26,40 @@ methods {
 rule internalBalanceChanges {
     address user;
     address token;
-    uint256 balance_pre = _getInternalBalance(user, token);
+    uint256 balance_pre = Harness_getAnInternalBalance(user, token);
 
     method f;
-    // require f.selector != UserBalanceOp();
+    require f.selector != manageUserBalance((uint8,address,uint256,address,address)[]).selector;
+    require f.selector != swap((bytes32,uint8,address,address,uint256,bytes),(address,bool,address,bool),uint256,uint256).selector;
+    require f.selector != batchSwap(uint8,(bytes32,uint256,uint256,uint256,bytes)[],address[],(address,bool,address,bool),int256[],uint256).selector;
 
     calldataarg a;
     env e;
-    f(e,a);
+    f(e, a);
 
-    uint256 balance_post = _getInternalBalance(user, token);
+    uint256 balance_post = Harness_getAnInternalBalance(user, token);
 
-    // if (f.selector == 
-    //         depositToInternalBalance(address, address[], uint256[], address).selector ||
-    //     f.selector == exitPool(bytes32,address,address,address[],uint256[],bool,bytes).selector) {
-    //     assert balance_post >= balance_pre, "depositToInternalBalance() can only increase the balance";
-    // } else if (f.selector == 
-    //                 withdrawFromInternalBalance(address, address[], uint256[], address).selector ||
-    //            f.selector == joinPool(bytes32,address,address,address[],uint256[],bool,bytes).selector){
-    //     assert balance_post <= balance_pre, 
-    //         "withdrawFromInternalBalance() and joinPool() can only decrease the balance";
-    // } else {
-    //     assert balance_post == balance_pre, "this method should not affect the internal balance";
-    // }
-    assert balance_post == balance_pre, "this method should not affect the internal balance";
+    if (f.selector == exitPool(bytes32,address,address,(address[],uint256[],bytes,bool)).selector) {
+        assert balance_post >= balance_pre, "this method cannot decrease internal balance";
+    } else if (f.selector == joinPool(bytes32,address,address,(address[],uint256[],bytes,bool)).selector) {
+        assert balance_post <= balance_pre, "this method cannot increase internal balance";
+    } else {
+        assert balance_post == balance_pre, "this method should not affect the internal balance";
+    }
+    
 }
 
 rule only_authorizer_can_decrease_internal_balance {
     address user;
     address token;
-    uint256 init_balance = _getInternalBalance(user, token);
+    uint256 init_balance = Harness_getAnInternalBalance(user, token);
 
     method f;
     env e;
     calldataarg a;
     f(e, a);
 
-    uint256 final_balance = _getInternalBalance(user, token);
+    uint256 final_balance = Harness_getAnInternalBalance(user, token);
     mathint balance_diff = final_balance - init_balance;
     bool authorized = Harness_isAuthenticatedByUser(e, user);
 
