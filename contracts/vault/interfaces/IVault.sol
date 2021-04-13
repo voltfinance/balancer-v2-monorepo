@@ -428,7 +428,7 @@ interface IVault is ISignaturesValidator {
         bytes32 indexed poolId,
         address indexed liquidityProvider,
         IERC20[] tokens,
-        int256[] amounts,
+        int256[] deltas,
         uint256[] protocolFees
     );
 
@@ -496,7 +496,7 @@ interface IVault is ISignaturesValidator {
      * Emits a `Swap` event.
      */
     function swap(
-        SingleSwap memory request,
+        SingleSwap memory singleSwap,
         FundManagement memory funds,
         uint256 limit,
         uint256 deadline
@@ -585,8 +585,8 @@ interface IVault is ISignaturesValidator {
         bytes32 indexed poolId,
         IERC20 indexed tokenIn,
         IERC20 indexed tokenOut,
-        uint256 tokensIn,
-        uint256 tokensOut
+        uint256 amountIn,
+        uint256 amountOut
     );
 
     /**
@@ -684,10 +684,15 @@ interface IVault is ISignaturesValidator {
     }
 
     /**
-     * @dev Emitted when a Pool's token Asset manager withdraws or deposits token balance via `managePoolBalance`
-     * (using the AssetManagerOpKind to determine the type of update)
+     * @dev Emitted when a Pool's token Asset Manager alters its balance via `managePoolBalance`.
      */
-    event PoolBalanceManaged(bytes32 indexed poolId, address indexed assetManager, IERC20 indexed token, int256 amount);
+    event PoolBalanceManaged(
+        bytes32 indexed poolId,
+        address indexed assetManager,
+        IERC20 indexed token,
+        int256 cashDelta,
+        int256 managedDelta
+    );
 
     /**
      * Withdrawals decrease the Pool's cash, but increase its managed balance, leaving the total balance unchanged.
