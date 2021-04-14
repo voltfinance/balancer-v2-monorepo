@@ -7,4 +7,4 @@ certoraRun verification/harness/simplifiedVaultHarness.sol contracts/vault/Proto
   --cache balancerGeneral \
   --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2 \
   --rule minimal_swap_info_pool_positive_total_if_registered \
-  --staging --msg "general spec r minimal_swap_info_pool_positive_total_if_registered with simpler balance check"
+  --staging --msg "general spec r minimal_swap_info_pool_positive_total_if_registered with simple balance allocation"

@@ -41,6 +41,14 @@ function legalAddress(address suspect) {
     require suspect != feesCollector;
 }
 
+function legalPool(bytes32 pool) {
+    require pool != currentContract;
+    require pool != ERC20;
+    require pool != weth;
+    require pool != borrower;
+    require pool != feesCollector;
+}
+
 function noIllegalRelayer(address suspect) {
     require !hasAllowedRelayer(currentContract, suspect);
     require !hasAllowedRelayer(ERC20, suspect);
@@ -86,6 +94,7 @@ rule changeRelayerAllowanceIntegrity {
 rule general_pool_positive_total_if_registered {
     bytes32 poolId;
     require Harness_poolIsGeneral(poolId);
+    legalPool(poolId);
 
     address token;
     bool init_tot_balance_positive = Harness_GeneralPoolTotalBalanceIsNotZero(poolId, token);
@@ -111,6 +120,7 @@ rule minimal_swap_info_pool_positive_total_if_registered {
 
     bytes32 poolId;
     require Harness_poolIsMinimal(poolId);
+    legalPool(poolId);
 
     address token;
     bool init_positive_balance = Harness_minimalSwapInfoPoolIsNotZero(poolId, token);

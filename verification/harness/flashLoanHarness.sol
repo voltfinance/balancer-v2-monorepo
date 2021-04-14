@@ -1,7 +1,7 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "../../contracts/vault/Authorization.sol";
+// import "../../contracts/vault/Authorization.sol";
 import "../../contracts/vault/FlashLoanProvider.sol";
 import "./internalBalanceHarness.sol";
 
@@ -15,7 +15,12 @@ function flashLoan(
 */
 
 contract flashLoanHarness is internalBalanceHarness{
-    constructor(IAuthorizer authorizer) internalBalanceHarness(authorizer) {}
+
+    constructor(IAuthorizer authorizer,
+        IWETH weth,
+        uint256 emergencyPeriod,
+        uint256 emergencyPeriodCheckExtension
+    ) internalBalanceHarness(authorizer, weth, emergencyPeriod, emergencyPeriodCheckExtension) { }
 
     bytes b;
 
