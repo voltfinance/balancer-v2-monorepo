@@ -15,6 +15,7 @@ contract simplifiedVaultHarness is Vault {
     - Specialization of a pool is just checking it from a map.
     */
     using BalanceAllocation for bytes32;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     constructor(IAuthorizer authorizer,
         IWETH weth,
@@ -30,6 +31,21 @@ contract simplifiedVaultHarness is Vault {
         FundManagement memory funds
     ) external override returns (int256[] memory) {}
 
+    // simplifying
+    function batchSwap(
+        SwapKind kind,
+        BatchSwapStep[] memory swaps,
+        IAsset[] memory assets,
+        FundManagement memory funds,
+        int256[] memory limits,
+        uint256 deadline
+    )   external
+        payable
+        override
+        nonReentrant
+        noEmergencyPeriod
+        authenticateFor(funds.sender)
+        returns (int256[] memory assetDeltas) {}
     /* Bypassing the external Authorizer */
 
 
@@ -101,6 +117,10 @@ contract simplifiedVaultHarness is Vault {
 
     function Harness_isPoolRegistered(bytes32 poolId) public view returns (bool){
         return _isPoolRegistered[poolId];
+    }
+
+    function Harness_isTokenRegisteredForMinimalSwapPool(bytes32 poolId, address token) public view returns (bool) {
+        return _minimalSwapInfoPoolsTokens[poolId].contains(address(token));
     }
 
     function Harness_GeneralPoolTotalBalanceIsNotZero(bytes32 poolId, IERC20 token) public view returns (bool) {

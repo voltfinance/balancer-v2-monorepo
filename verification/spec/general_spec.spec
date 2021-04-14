@@ -11,6 +11,7 @@ methods {
     Harness_has_valid_signature(address) returns bool envfree
     Harness_poolIsMinimal(bytes32) returns bool envfree
     Harness_poolIsGeneral(bytes32) returns bool envfree
+    Harness_isTokenRegisteredForMinimalSwapPool(bytes32,address) returns bool envfree
 
     // token functions
     transfer(address, uint256) returns bool envfree => DISPATCHER(true)
@@ -126,6 +127,7 @@ rule minimal_swap_info_pool_positive_total_if_registered {
     bool init_positive_balance = Harness_minimalSwapInfoPoolIsNotZero(poolId, token);
     bool init_registered = Harness_isPoolRegistered(poolId);
     require init_positive_balance => init_registered;
+    requireInvariant tokensPoolRegistration(poolId, token);
 
     env e;
     legalAddress(e.msg.sender);
@@ -137,3 +139,7 @@ rule minimal_swap_info_pool_positive_total_if_registered {
     bool fin_registered = Harness_isPoolRegistered(poolId);
     assert fin_positive_balance => fin_registered, "The total balance of a minimal swap info pool should be positive only if it is registered";
 }
+
+// If tokens are registered, then pool must be registered as well
+invariant tokensPoolRegistration(bytes32 poolId, address token) 
+    Harness_isTokenRegisteredForMinimalSwapPool(poolId, token) => Harness_isPoolRegistered(poolId)
