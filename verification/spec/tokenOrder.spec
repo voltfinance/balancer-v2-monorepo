@@ -2,12 +2,26 @@ methods {
     Harness_getPoolTokenByIndex(bytes32, uint256) returns address envfree
     Harness_verifyTwoTokenPoolsTokens(bytes32) returns bool envfree
     Harness_poolIsTwoTokens(bytes32) returns bool envfree
-    0xd5c096c4 => NONDET  // onJoinPool
+
+    // token functions
+    transfer(address, uint256) returns bool envfree => DISPATCHER(true)
+    transferFrom(address, address, uint256) returns bool envfree => DISPATCHER(true)
+    balanceOf(address) returns uint256 envfree => DISPATCHER(true)
+    totalSupply() returns uint256 envfree => DISPATCHER(true)
+
+    // Pool hooks
+    // onSwap(address,uint256[],uint256,uint256) returns uint256 => NONDET // general pool
+    0x01ec954a => NONDET // onSwap hook of a general pool
+    // onSwap(address,uint256,uint256) returns uint256 => NONDET // minimal swap info pool
+    0x9d2c110c => NONDET // onSwap hook of a minimal swap info pool
+
+    0xd5c096c4 => NONDET // onJoinPool
     0x74f3b009 => NONDET // onExitPool
-    0x8d928af8 => NONDET // getVault
-    0x38fff2d0 => NONDET // getPoolId
-    0xb58c9534 => NONDET // onSwapGivenIn for General Pool
-    0x618e086e => NONDET // onSwapGivenOut on General Pool
+
+    // Others
+    receiveFlashLoan(address[], uint256[], uint256[], bytes) => DISPATCHER(true)
+
+    nop() => NONDET
 }
 
 rule token_order_is_constant {
@@ -19,8 +33,7 @@ rule token_order_is_constant {
 
     method f;
     require f.selector != deregisterTokens(bytes32,address[]).selector; // changes token order
-    require f.selector != 0x45eb8830; //batchSwapGivenOut, times out
-    require f.selector != 0x77c6b2c9; //batchSwapGivenIn, times out
+    require f.selector != 0x945bcec9; // batchswap
     env e;
     calldataarg a;
     f(e, a);
@@ -39,8 +52,7 @@ rule tokens_are_static_two_token_pools {
 
     method f;
     require f.selector != deregisterTokens(bytes32,address[]).selector;
-    require f.selector != 0x45eb8830; //batchSwapGivenOut, times out
-    require f.selector != 0x77c6b2c9; //batchSwapGivenIn, times out
+    require f.selector != 0x945bcec9; // batchswap
     env e;
     calldataarg a;
     f(e, a);
@@ -56,8 +68,7 @@ rule valid_order_of_two_pool_tokens {
     require precondition;
 
     method f;
-    require f.selector != 0x45eb8830; //batchSwapGivenOut, times out
-    require f.selector != 0x77c6b2c9; //batchSwapGivenIn, times out
+    require f.selector != 0x945bcec9; // batchswap
 
     env e;
     calldataarg a;

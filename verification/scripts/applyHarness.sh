@@ -4,6 +4,7 @@ perl -0777 -i -pe 's/private/internal/g' contracts/vault/PoolRegistry.sol
 
 # External to public
 perl -0777 -i -pe 's/external/public/g' contracts/vault/UserBalance.sol
+perl -0777 -i -pe 's/external/public/g' contracts/vault/FlashLoanProvider.sol
 
 # Virtualize
 perl -0777 -i -pe 's/_calculateFlashLoanFee\(uint256 amount\) internal/_calculateFlashLoanFee\(uint256 amount\) virtual internal/g' contracts/vault/Fees.sol

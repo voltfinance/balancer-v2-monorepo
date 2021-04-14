@@ -8,7 +8,11 @@ contract tokenOrderHarness is simplifiedVaultHarness {
     This harness exposes information used by rules caring about token order of the pools.
     */
 
-    constructor(IAuthorizer authorizer) simplifiedVaultHarness(authorizer) {}
+    constructor(IAuthorizer authorizer,
+        IWETH weth,
+        uint256 emergencyPeriod,
+        uint256 emergencyPeriodCheckExtension
+    ) simplifiedVaultHarness (authorizer, weth, emergencyPeriod, emergencyPeriodCheckExtension) { }
 
     function Harness_getPoolTokenByIndex(bytes32 poolId, uint256 index) public view returns (IERC20 token) {
         IERC20[] memory token_array; 

@@ -1,9 +1,23 @@
 methods {
     getTokenBalance(address, address) returns uint256 envfree
-    balanceOf(address) => DISPATCHER(true)
     receiveFlashLoan(address[], uint256[], uint256[], bytes) => DISPATCHER(true)
-    transfer(address, uint256) => DISPATCHER(true)
-    transferFrom(address, address, uint256) => DISPATCHER(true)
+
+    // token functions
+    transfer(address, uint256) returns bool envfree => DISPATCHER(true)
+    transferFrom(address, address, uint256) returns bool envfree => DISPATCHER(true)
+    balanceOf(address) returns uint256 envfree => DISPATCHER(true)
+    totalSupply() returns uint256 envfree => DISPATCHER(true)
+
+    // Pool hooks
+    // onSwap(address,uint256[],uint256,uint256) returns uint256 => NONDET // general pool
+    0x01ec954a => NONDET // onSwap hook of a general pool
+    // onSwap(address,uint256,uint256) returns uint256 => NONDET // minimal swap info pool
+    0x9d2c110c => NONDET // onSwap hook of a minimal swap info pool
+
+    0xd5c096c4 => NONDET // onJoinPool
+    0x74f3b009 => NONDET // onExitPool
+
+    nop() => NONDET
 }
 
 rule flashLoanProfitability {
