@@ -1,6 +1,7 @@
 methods {
     Harness_getAnInternalBalance(address, address) returns uint256 envfree 
     Harness_isVaultRelayer() returns bool envfree
+    Harness_has_valid_signature(address) returns bool envfree
 
     // token functions
     transfer(address, uint256) returns bool envfree => DISPATCHER(true)
@@ -55,19 +56,20 @@ rule only_authorizer_can_decrease_internal_balance {
     uint256 init_balance = Harness_getAnInternalBalance(user, token);
 
     method f;
+    require f.selector != batchSwap(uint8,(bytes32,uint256,uint256,uint256,bytes)[],address[],(address,bool,address,bool),int256[],uint256).selector;  // batch swap
     env e;
     calldataarg a;
     f(e, a);
 
     uint256 final_balance = Harness_getAnInternalBalance(user, token);
     mathint balance_diff = final_balance - init_balance;
-    bool authorized = Harness_isAuthenticatedByUser(e, user);
+    bool authorized = Harness_isAuthenticatedByUser(e, user) || Harness_has_valid_signature(user);
 
     assert balance_diff < 0 => authorized, "only an authorized message sender can decrease a user's internal balance";
 }
 
 invariant vault_has_no_relayers() !Harness_isVaultRelayer() {
-    preserved changeRelayerAllowance(address user, address relayer, bool b) with (env e) {
-        require e.msg.sender != currentContract;  // It is an external function
+    preserved changeRelayerAllowance(address sender, address relayer, bool b) with (env e) {
+        require sender != currentContract;  // It is an external function
     }
 }
