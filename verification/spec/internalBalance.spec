@@ -69,7 +69,7 @@ rule only_authorizer_can_decrease_internal_balance {
 }
 
 invariant vault_has_no_relayers() !Harness_isVaultRelayer() {
-    preserved changeRelayerAllowance(address sender, address relayer, bool b) with (env e) {
+    preserved setRelayerApproval(address sender, address relayer, bool b) with (env e) {
         require sender != currentContract;  // It is an external function
     }
 }

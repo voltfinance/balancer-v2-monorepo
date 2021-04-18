@@ -16,7 +16,7 @@ contract internalBalanceHarness is simplifiedVaultHarness {
 
     function Harness_isAuthenticatedByUser(address user) public view returns (bool) {
         if (user == msg.sender) return true;
-        bool user_approved = _hasAllowedRelayer(user, msg.sender);
+        bool user_approved = _hasApprovedRelayer(user, msg.sender);
         bool sys_approved = authorizations[msg.sender];
         return user_approved && sys_approved;
     }
@@ -24,7 +24,7 @@ contract internalBalanceHarness is simplifiedVaultHarness {
     address random;
 
     function Harness_isVaultRelayer() public view returns (bool) {
-        return _hasAllowedRelayer(address(this), random);
+        return _hasApprovedRelayer(address(this), random);
     }
 
     function Harness_getAnInternalBalance(address user, IERC20 token) public view returns (uint256) {
