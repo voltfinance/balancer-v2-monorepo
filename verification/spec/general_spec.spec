@@ -4,7 +4,7 @@ using Borrower as borrower
 using ProtocolFeesCollector as feesCollector
 
 methods {
-    hasAllowedRelayer(address, address) returns bool envfree
+    hasApprovedRelayer(address, address) returns bool envfree
     Harness_GeneralPoolTotalBalanceIsNotZero(bytes32, address) returns bool envfree
     Harness_minimalSwapInfoPoolIsNotZero(bytes32, address) returns bool envfree
     Harness_isPoolRegistered(bytes32) returns bool envfree
@@ -51,11 +51,11 @@ function legalPool(bytes32 pool) {
 }
 
 function noIllegalRelayer(address suspect) {
-    require !hasAllowedRelayer(currentContract, suspect);
-    require !hasAllowedRelayer(ERC20, suspect);
-    require !hasAllowedRelayer(weth, suspect);
-    require !hasAllowedRelayer(borrower, suspect);
-    require !hasAllowedRelayer(feesCollector, suspect);
+    require !hasApprovedRelayer(currentContract, suspect);
+    require !hasApprovedRelayer(ERC20, suspect);
+    require !hasApprovedRelayer(weth, suspect);
+    require !hasApprovedRelayer(borrower, suspect);
+    require !hasApprovedRelayer(feesCollector, suspect);
 
     require !Harness_has_valid_signature(currentContract);
     require !Harness_has_valid_signature(ERC20);
@@ -86,9 +86,9 @@ rule changeRelayerAllowanceIntegrity {
     bool allowed;
 
     env e;
-    changeRelayerAllowance(e, e.msg.sender, relayer, allowed);
+    setRelayerApproval(e, e.msg.sender, relayer, allowed);
 
-    bool allowance = hasAllowedRelayer(e.msg.sender, relayer);
+    bool allowance = hasApprovedRelayer(e.msg.sender, relayer);
     assert allowance == allowed, "allowance was set right before this check";
 }
 

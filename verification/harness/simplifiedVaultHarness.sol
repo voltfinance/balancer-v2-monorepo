@@ -43,7 +43,7 @@ contract simplifiedVaultHarness is Vault {
         payable
         override
         nonReentrant
-        noEmergencyPeriod
+        whenNotPaused
         authenticateFor(funds.sender)
         returns (int256[] memory assetDeltas) {}
     /* Bypassing the external Authorizer */
@@ -72,8 +72,8 @@ contract simplifiedVaultHarness is Vault {
 
     mapping(uint256 => uint256) private calc_fee; // All fee types will return the same value for simplicity
 
-    function _calculateFlashLoanFee(uint256 amount) override internal view returns (uint256) {
-        if (getProtocolFeesCollector().getFlashLoanFee() == 0) return 0; // havoc as CONSTANT
+    function _calculateFlashLoanFeeAmount(uint256 amount) override internal view returns (uint256) {
+        if (getProtocolFeesCollector().getFlashLoanFeePercentage() == 0) return 0; // havoc as CONSTANT
         uint256 fee = calc_fee[amount];
         require(fee < amount);
         return fee;
@@ -86,7 +86,7 @@ contract simplifiedVaultHarness is Vault {
     function Harness_getACollectedFee(IERC20 token) public view returns (uint256) {
         IERC20[] memory token_array = new IERC20[](1);
         token_array[0] = token;
-        uint256 result = getProtocolFeesCollector().getCollectedFees(token_array)[0]; // havoc as DISPATCHER
+        uint256 result = getProtocolFeesCollector().getCollectedFeeAmounts(token_array)[0]; // havoc as DISPATCHER
         return result;
     }
 

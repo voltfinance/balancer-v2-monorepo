@@ -4,13 +4,14 @@ perl -0777 -i -pe 's/private/internal/g' contracts/vault/PoolRegistry.sol
 
 # External to public
 perl -0777 -i -pe 's/external/public/g' contracts/vault/UserBalance.sol
-perl -0777 -i -pe 's/external/public/g' contracts/vault/FlashLoanProvider.sol
+perl -0777 -i -pe 's/external/public/g' contracts/vault/FlashLoans.sol
 
 # Virtualize
 perl -0777 -i -pe 's/_calculateFlashLoanFee\(uint256 amount\) internal/_calculateFlashLoanFee\(uint256 amount\) virtual internal/g' contracts/vault/Fees.sol
 perl -0777 -i -pe 's/function \_authenticateCaller\(\) internal/function \_authenticateCaller\(\) virtual internal/g' contracts/lib/helpers/Authentication.sol
 perl -0777 -i -pe 's/\_getPoolSpecialization\(bytes32 poolId\) internal pure/\_getPoolSpecialization\(bytes32 poolId\) virtual internal view/g' contracts/vault/PoolRegistry.sol
 perl -0777 -i -pe 's/function \_validateSignature\(address user, uint256 errorCode\) internal {/function \_validateSignature\(address user, uint256 errorCode\) internal virtual {/g' contracts/lib/helpers/SignaturesValidator.sol
+perl -0777 -i -pe 's/\_calculateFlashLoanFeeAmount\(uint256 amount\) internal view/\_calculateFlashLoanFeeAmount\(uint256 amount\) internal virtual view/g' contracts/vault/Fees.sol
 
 # sendValue => nothing inteface
 perl -0007 -i -pe 's/recipient\.sendValue\(amount\)/Nothing\(recipient\)\.nop{value:amount}\(\)/g' contracts/vault/AssetTransfersHandler.sol
