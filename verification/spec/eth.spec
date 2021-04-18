@@ -1,6 +1,8 @@
 using DummyERC20 as ERC20
 
 methods {
+    hasApprovedRelayer(address, address) returns bool envfree
+    Harness_has_valid_signature(address) returns bool envfree
     Harness_vaultEthBalance() envfree
     Harness_get_receive_asset_counter(address) returns uint256 envfree
 
@@ -20,6 +22,12 @@ methods {
 
     0xf84d066e => NONDET // queryBatchSwap()
 
+    0x9d2c110c => NONDET // onSwap hook of a minimal swap info pool
+    0x01ec954a => NONDET // onSwap general pool
+    nop() => NONDET
+    deposit() => DISPATCHER(true)
+    withdraw(uint256) => DISPATCHER(true)
+
     receiveFlashLoan(address[], uint256[], uint256[], bytes) => DISPATCHER(true)
 }
 
@@ -28,6 +36,28 @@ methods {
     // require f.selector != 0x45eb8830; //batchSwapGivenOut
     // require f.selector != 0x77c6b2c9; //batchSwapGivenIn
 */
+
+function noIllegalRelayer(address suspect) {
+    require !hasApprovedRelayer(currentContract, suspect);
+    require !hasApprovedRelayer(ERC20, suspect);
+   /* require !hasApprovedRelayer(weth, suspect);
+    require !hasApprovedRelayer(borrower, suspect);
+    require !hasApprovedRelayer(feesCollector, suspect);*/
+    require !Harness_has_valid_signature(currentContract);
+    require !Harness_has_valid_signature(ERC20);
+   /* require !Harness_has_valid_signature(weth);
+    require !Harness_has_valid_signature(borrower);
+    require !Harness_has_valid_signature(feesCollector);*/
+}
+
+function legalAddress(address suspect) {
+    require suspect != currentContract;
+    require suspect != ERC20;
+    /*require suspect != weth;
+    require suspect != borrower;
+    require suspect != feesCollector;*/
+}
+
 
 rule vault_gets_no_eth {
     uint256 init_eth = Harness_vaultEthBalance();
@@ -42,7 +72,9 @@ rule vault_gets_no_eth {
     require f.selector != 0x45eb8830; //batchSwapGivenOut
     require f.selector != 0x77c6b2c9; //batchSwapGivenIn
 
+    require f.selector != 0x945bcec9; // do not check batchSwap
     env e;
+    legalAddress(e.msg.sender);
     calldataarg a;
     f(e, a);
 
