@@ -40,3 +40,8 @@ perl -007 -i -pe 's/\(\(\_mostSignificant << 224\) \+ \(\_midSignificant << 112\
 
 
 perl -007 -i -pe 's/& mask//g' contracts/vault/balances/BalanceAllocation.sol
+
+# joinPool and exitPool to public
+perl -0777 -i -pe 's/external/public/g' contracts/vault/PoolBalances.sol
+# _validateTokensAndGetBalances to internal
+perl -0777 -i -pe 's/function \_validateTokensAndGetBalances\(bytes32 poolId, IERC20\[\] memory expectedTokens\)\s*private\s*view/function \_validateTokensAndGetBalances\(bytes32 poolId, IERC20\[\] memory expectedTokens\) internal view/g' contracts/vault/PoolBalances.sol
