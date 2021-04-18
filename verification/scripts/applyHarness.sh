@@ -45,3 +45,6 @@ perl -007 -i -pe 's/& mask//g' contracts/vault/balances/BalanceAllocation.sol
 perl -0777 -i -pe 's/external/public/g' contracts/vault/PoolBalances.sol
 # _validateTokensAndGetBalances to internal
 perl -0777 -i -pe 's/function \_validateTokensAndGetBalances\(bytes32 poolId, IERC20\[\] memory expectedTokens\)\s*private\s*view/function \_validateTokensAndGetBalances\(bytes32 poolId, IERC20\[\] memory expectedTokens\) internal view/g' contracts/vault/PoolBalances.sol
+
+# internal to public _getInternalBalance
+perl -0777 -i -pe 's/function \_getInternalBalance\(address account, IERC20 token\) internal view/function \_getInternalBalance\(address account, IERC20 token\) public view/g' contracts/vault/UserBalance.sol
