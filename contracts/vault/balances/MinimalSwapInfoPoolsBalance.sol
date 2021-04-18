@@ -15,10 +15,9 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 import "../../lib/helpers/BalancerErrors.sol";
 import "../../lib/openzeppelin/EnumerableSet.sol";
+import "../../lib/openzeppelin/IERC20.sol";
 
 import "./BalanceAllocation.sol";
 import "../PoolRegistry.sol";
@@ -80,7 +79,7 @@ abstract contract MinimalSwapInfoPoolsBalance is PoolRegistry {
             _require(_minimalSwapInfoPoolsBalances[poolId][token].isZero(), Errors.NONZERO_TOKEN_BALANCE);
 
             // For consistency with other Pool specialization settings, we explicitly reset the balance (which may have
-            // a non-zero last change block number).
+            // a non-zero last change block).
             delete _minimalSwapInfoPoolsBalances[poolId][token];
 
             bool removed = poolTokens.remove(address(token));

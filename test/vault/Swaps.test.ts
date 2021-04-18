@@ -5,7 +5,7 @@ import { BigNumber, Contract, ContractReceipt } from 'ethers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 
 import TokenList, { ETH_TOKEN_ADDRESS } from '../helpers/models/tokens/TokenList';
-import { roleId } from '../../lib/helpers/roles';
+import { actionId } from '../../lib/helpers/actions';
 import { encodeJoin } from '../helpers/mockPool';
 import * as expectEvent from '../helpers/expectEvent';
 import { Comparison, expectBalanceChange } from '../helpers/tokenBalance';
@@ -292,10 +292,10 @@ describe('Vault - swaps', () => {
 
       context('when the sender is an approved relayer', () => {
         sharedBeforeEach(async () => {
-          const role = roleId(vault, 'batchSwap');
-          await authorizer.connect(admin).grantRole(role, other.address);
+          const action = await actionId(vault, 'batchSwap');
+          await authorizer.connect(admin).grantRole(action, other.address);
 
-          await vault.connect(trader).changeRelayerAllowance(trader.address, other.address, true);
+          await vault.connect(trader).setRelayerApproval(trader.address, other.address, true);
         });
 
         it('returns excess sent ETH to the relayer', async () => {
@@ -536,15 +536,15 @@ describe('Vault - swaps', () => {
                           const fromOther = true;
 
                           context('when the relayer is whitelisted by the authorizer', () => {
-                            sharedBeforeEach('grant role to relayer', async () => {
-                              const single = roleId(vault, 'swap');
-                              const batch = roleId(vault, 'batchSwap');
+                            sharedBeforeEach('grant permission to relayer', async () => {
+                              const single = await actionId(vault, 'swap');
+                              const batch = await actionId(vault, 'batchSwap');
                               await authorizer.connect(admin).grantRoles([single, batch], other.address);
                             });
 
                             context('when the relayer is allowed by the user', () => {
                               sharedBeforeEach('allow relayer', async () => {
-                                await vault.connect(trader).changeRelayerAllowance(trader.address, other.address, true);
+                                await vault.connect(trader).setRelayerApproval(trader.address, other.address, true);
                               });
 
                               assertSwapGivenIn({ swaps, fromOther }, { DAI: 2e18, MKR: -1e18 });
@@ -552,9 +552,7 @@ describe('Vault - swaps', () => {
 
                             context('when the relayer is not allowed by the user', () => {
                               sharedBeforeEach('disallow relayer', async () => {
-                                await vault
-                                  .connect(trader)
-                                  .changeRelayerAllowance(trader.address, other.address, false);
+                                await vault.connect(trader).setRelayerApproval(trader.address, other.address, false);
                               });
 
                               context('when the relayer has a valid signature from the user', () => {
@@ -575,15 +573,15 @@ describe('Vault - swaps', () => {
                           });
 
                           context('when the relayer is not whitelisted by the authorizer', () => {
-                            sharedBeforeEach('revoke role from relayer', async () => {
-                              const single = roleId(vault, 'swap');
-                              const batch = roleId(vault, 'batchSwap');
+                            sharedBeforeEach('revoke permission from relayer', async () => {
+                              const single = await actionId(vault, 'swap');
+                              const batch = await actionId(vault, 'batchSwap');
                               await authorizer.connect(admin).revokeRoles([single, batch], other.address);
                             });
 
                             context('when the relayer is allowed by the user', () => {
                               sharedBeforeEach('allow relayer', async () => {
-                                await vault.connect(trader).changeRelayerAllowance(trader.address, other.address, true);
+                                await vault.connect(trader).setRelayerApproval(trader.address, other.address, true);
                               });
 
                               assertSwapGivenInReverts({ swaps, fromOther }, 'SENDER_NOT_ALLOWED');
@@ -591,9 +589,7 @@ describe('Vault - swaps', () => {
 
                             context('when the relayer is not allowed by the user', () => {
                               sharedBeforeEach('disallow relayer', async () => {
-                                await vault
-                                  .connect(trader)
-                                  .changeRelayerAllowance(trader.address, other.address, false);
+                                await vault.connect(trader).setRelayerApproval(trader.address, other.address, false);
                               });
 
                               assertSwapGivenInReverts({ swaps, fromOther }, 'SENDER_NOT_ALLOWED');
@@ -1035,15 +1031,15 @@ describe('Vault - swaps', () => {
                           const fromOther = true;
 
                           context('when the relayer is whitelisted by the authorizer', () => {
-                            sharedBeforeEach('grant role to relayer', async () => {
-                              const single = roleId(vault, 'swap');
-                              const batch = roleId(vault, 'batchSwap');
+                            sharedBeforeEach('grant permission to relayer', async () => {
+                              const single = await actionId(vault, 'swap');
+                              const batch = await actionId(vault, 'batchSwap');
                               await authorizer.connect(admin).grantRoles([single, batch], other.address);
                             });
 
                             context('when the relayer is allowed by the user', () => {
                               sharedBeforeEach('allow relayer', async () => {
-                                await vault.connect(trader).changeRelayerAllowance(trader.address, other.address, true);
+                                await vault.connect(trader).setRelayerApproval(trader.address, other.address, true);
                               });
 
                               assertSwapGivenOut({ swaps, fromOther }, { DAI: 1e18, MKR: -0.5e18 });
@@ -1051,9 +1047,7 @@ describe('Vault - swaps', () => {
 
                             context('when the relayer is not allowed by the user', () => {
                               sharedBeforeEach('disallow relayer', async () => {
-                                await vault
-                                  .connect(trader)
-                                  .changeRelayerAllowance(trader.address, other.address, false);
+                                await vault.connect(trader).setRelayerApproval(trader.address, other.address, false);
                               });
 
                               assertSwapGivenOutReverts({ swaps, fromOther }, 'USER_DOESNT_ALLOW_RELAYER');
@@ -1061,15 +1055,15 @@ describe('Vault - swaps', () => {
                           });
 
                           context('when the relayer is not whitelisted by the authorizer', () => {
-                            sharedBeforeEach('revoke role from relayer', async () => {
-                              const single = roleId(vault, 'swap');
-                              const batch = roleId(vault, 'batchSwap');
+                            sharedBeforeEach('revoke permission from relayer', async () => {
+                              const single = await actionId(vault, 'swap');
+                              const batch = await actionId(vault, 'batchSwap');
                               await authorizer.connect(admin).revokeRoles([single, batch], other.address);
                             });
 
                             context('when the relayer is allowed by the user', () => {
                               sharedBeforeEach('allow relayer', async () => {
-                                await vault.connect(trader).changeRelayerAllowance(trader.address, other.address, true);
+                                await vault.connect(trader).setRelayerApproval(trader.address, other.address, true);
                               });
 
                               assertSwapGivenOutReverts({ swaps, fromOther }, 'SENDER_NOT_ALLOWED');
@@ -1077,9 +1071,7 @@ describe('Vault - swaps', () => {
 
                             context('when the relayer is not allowed by the user', () => {
                               sharedBeforeEach('disallow relayer', async () => {
-                                await vault
-                                  .connect(trader)
-                                  .changeRelayerAllowance(trader.address, other.address, false);
+                                await vault.connect(trader).setRelayerApproval(trader.address, other.address, false);
                               });
 
                               assertSwapGivenOutReverts({ swaps, fromOther }, 'SENDER_NOT_ALLOWED');

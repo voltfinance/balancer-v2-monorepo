@@ -15,7 +15,7 @@
 pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../lib/openzeppelin/IERC20.sol";
 
 import "../vault/interfaces/IVault.sol";
 import "../vault/interfaces/IBasePool.sol";
@@ -76,7 +76,7 @@ contract MockVault {
         bytes32 poolId,
         address recipient,
         uint256[] memory currentBalances,
-        uint256 latestBlockNumberUsed,
+        uint256 lastChangeBlock,
         uint256 protocolFeePercentage,
         bytes memory userData
     ) external {
@@ -85,7 +85,7 @@ contract MockVault {
             msg.sender,
             recipient,
             currentBalances,
-            latestBlockNumberUsed,
+            lastChangeBlock,
             protocolFeePercentage,
             userData
         );
@@ -109,7 +109,7 @@ contract MockVault {
         bytes32 poolId,
         address recipient,
         uint256[] memory currentBalances,
-        uint256 latestBlockNumberUsed,
+        uint256 lastChangeBlock,
         uint256 protocolFeePercentage,
         bytes memory userData
     ) external {
@@ -118,7 +118,7 @@ contract MockVault {
             msg.sender,
             recipient,
             currentBalances,
-            latestBlockNumberUsed,
+            lastChangeBlock,
             protocolFeePercentage,
             userData
         );
