@@ -46,8 +46,8 @@ contract simplifiedVaultHarness is Vault {
         whenNotPaused
         authenticateFor(funds.sender)
         returns (int256[] memory assetDeltas) {}
-    /* Bypassing the external Authorizer */
 
+    /* Bypassing the external Authorizer */
 
     mapping(address => bool) internal authorizations;
 

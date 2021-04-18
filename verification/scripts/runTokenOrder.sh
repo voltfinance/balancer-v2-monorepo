@@ -6,4 +6,5 @@ certoraRun verification/harness/tokenOrderHarness.sol contracts/vault/ProtocolFe
   --solc solc7.6 \
   --cache balancerTokenOrder \
   --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2 \
-  --staging --msg "runTokenOrder all rules"
+  --rule valid_order_of_two_pool_tokens \
+  --staging --msg "runTokenOrder rule valid_order_of_two_pool_tokens"

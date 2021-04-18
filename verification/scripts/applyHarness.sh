@@ -23,6 +23,8 @@ abstract contract/g' contracts/vault/AssetTransfersHandler.sol
 # remove problematic modifiers
 perl -0007 -i -pe 's/nonReentrant //g' contracts/vault/Swaps.sol
 perl -0007 -i -pe 's/noEmergencyPeriod //g' contracts/vault/Swaps.sol
+perl -0007 -i -pe 's/nonReentrant //g' contracts/vault/PoolBalances.sol
+perl -0007 -i -pe 's/noEmergencyPeriod //g' contracts/vault/PoolBalances.sol
 
 # simplifying BallanceAllocation
 perl -007 -i -pe 's/uint256 mask = 2\*\*\(224\) - 1;//g' contracts/vault/balances/BalanceAllocation.sol

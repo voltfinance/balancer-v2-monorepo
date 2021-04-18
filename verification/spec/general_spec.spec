@@ -81,7 +81,7 @@ rule increasingFees {
     assert free_post >= free_pre, "The collected fees cannot decrease by any vault action";
 } 
 
-rule changeRelayerAllowanceIntegrity {
+rule setRelayerApprovalIntegrity {
     address relayer;
     bool allowed;
 
