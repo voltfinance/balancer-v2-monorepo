@@ -5,6 +5,6 @@ certoraRun verification/harness/tokenOrderHarness.sol contracts/vault/ProtocolFe
   --link tokenOrderHarness:_weth=WETH \
   --solc solc7.6 \
   --cache balancerTokenOrder \
-  --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2 \
-  --rule valid_order_of_two_pool_tokens \
-  --staging --msg "runTokenOrder rule valid_order_of_two_pool_tokens"
+  --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2,-t=1200 \
+  --rule token_order_is_constant \
+  --staging --msg "runTokenOrder rule token_order_is_constant with -t=1200"

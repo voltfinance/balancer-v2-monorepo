@@ -6,5 +6,4 @@ certoraRun verification/harness/internalBalanceHarness.sol contracts/vault/Proto
   --solc solc7.6 \
   --cache balancerInternalBalance \
   --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2 \
-  --rule only_authorizer_can_decrease_internal_balance \
-  --staging --msg "internalBalance rule only_authorizer_can_decrease_internal_balance allows signatures"
+  --staging --msg "internalBalance all rules"

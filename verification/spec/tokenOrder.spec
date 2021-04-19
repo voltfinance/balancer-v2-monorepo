@@ -1,3 +1,8 @@
+using DummyERC20 as ERC20
+using WETH as weth
+using Borrower as borrower
+using ProtocolFeesCollector as feesCollector
+
 methods {
     Harness_getPoolTokenByIndex(bytes32, uint256) returns address envfree
     Harness_verifyTwoTokenPoolsTokens(bytes32) returns bool envfree
@@ -24,9 +29,18 @@ methods {
     nop() => NONDET
 }
 
+function legalPool(bytes32 pool) {
+    require pool != currentContract;
+    require pool != ERC20;
+    require pool != weth;
+    require pool != borrower;
+    require pool != feesCollector;
+}
+
 rule token_order_is_constant {
     bytes32 poolId;
     require !Harness_poolIsTwoTokens(poolId);
+    legalPool(poolId);
 
     uint256 index;
     address token_pre = Harness_getPoolTokenByIndex(poolId, index);
@@ -64,6 +78,7 @@ rule tokens_are_static_two_token_pools {
 
 rule valid_order_of_two_pool_tokens {
     bytes32 poolId;
+    legalPool(poolId);
     bool precondition = Harness_verifyTwoTokenPoolsTokens(poolId);
     require precondition;
 

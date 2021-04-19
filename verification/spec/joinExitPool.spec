@@ -1,19 +1,66 @@
+using DummyERC20 as ERC20
+using WETH as weth
+using Borrower as borrower
+using ProtocolFeesCollector as feesCollector
+
 methods {
     Harness_getACollectedFee(address) returns uint256 envfree
     _getInternalBalance(address, address) returns uint256 envfree
     Harness_poolIsTwoTokens(bytes32) returns bool envfree
     getTokenBalance(address, address) returns uint256 envfree
     Harness_poolIsGeneral(bytes32) returns bool envfree
-    Harness_get_withdraw_fee() returns uint256 envfree
+    hasApprovedRelayer(address, address) returns bool envfree
+    Harness_has_valid_signature(address) returns bool envfree
 
-    transfer(address, uint256) => DISPATCHER(true)
-    transferFrom(address, address, uint256) => DISPATCHER(true)
-    balanceOf(address) => DISPATCHER(true)
+    // token functions
+    transfer(address, uint256) returns bool envfree => DISPATCHER(true)
+    transferFrom(address, address, uint256) returns bool envfree => DISPATCHER(true)
+    balanceOf(address) returns uint256 envfree => DISPATCHER(true)
+    totalSupply() returns uint256 envfree => DISPATCHER(true)
+
+    // Pool hooks
+    // onSwap(address,uint256[],uint256,uint256) returns uint256 => NONDET // general pool
+    0x01ec954a => NONDET // onSwap hook of a general pool
+    // onSwap(address,uint256,uint256) returns uint256 => NONDET // minimal swap info pool
+    0x9d2c110c => NONDET // onSwap hook of a minimal swap info pool
 
     0xd5c096c4 => NONDET // onJoinPool
     0x74f3b009 => NONDET // onExitPool
-    0xb58c9534 => NONDET // onSwapGivenIn for General Pool
-    0x618e086e => NONDET // onSwapGivenOut on General Pool
+
+    // Others
+    receiveFlashLoan(address[], uint256[], uint256[], bytes) => DISPATCHER(true)
+
+    nop() => NONDET
+}
+
+function legalAddress(address suspect) {
+    require suspect != currentContract;
+    require suspect != ERC20;
+    require suspect != weth;
+    // require suspect != borrower;
+    require suspect != feesCollector;
+}
+
+function legalPool(bytes32 pool) {
+    require pool != currentContract;
+    require pool != ERC20;
+    require pool != weth;
+    require pool != borrower;
+    require pool != feesCollector;
+}
+
+function noIllegalRelayer(address suspect) {
+    require !hasApprovedRelayer(currentContract, suspect);
+    require !hasApprovedRelayer(ERC20, suspect);
+    require !hasApprovedRelayer(weth, suspect);
+    // require !hasApprovedRelayer(borrower, suspect);
+    require !hasApprovedRelayer(feesCollector, suspect);
+
+    require !Harness_has_valid_signature(currentContract);
+    require !Harness_has_valid_signature(ERC20);
+    require !Harness_has_valid_signature(weth);
+    // require !Harness_has_valid_signature(borrower);
+    require !Harness_has_valid_signature(feesCollector);
 }
 
 /* The rule below is a weaker form of rules to follow. It it useful for debugging if the more complex rules fail.
@@ -49,6 +96,9 @@ rule harmlessJoinPoolGeneralMinimal {
     require !Harness_poolIsTwoTokens(poolId);
 
     address sender;
+    legalAddress(sender);
+    noIllegalRelayer(sender);
+
     address recipient;
 
     address token_a;
@@ -58,12 +108,17 @@ rule harmlessJoinPoolGeneralMinimal {
 
     bool fromInternalBalance;
 
-    uint256 init_balance = getTokenBalance(currentContract, token_checked);
+    uint256 init_vault_balance = getTokenBalance(currentContract, token_checked);
+    uint256 init_fee = Harness_getACollectedFee(token_checked);
+    uint256 init_tot_balance = init_vault_balance + init_fee;
 
     Harness_doubleJoinPool(e, poolId, sender, recipient, token_a, token_b, maxAmountInA, maxAmountInB, fromInternalBalance);
-    uint256 final_balance = getTokenBalance(currentContract, token_checked);
 
-    assert final_balance >= init_balance, "joinPool should never lose the vault money";
+    uint256 fin_vault_balance = getTokenBalance(currentContract, token_checked);
+    uint256 fin_fee = Harness_getACollectedFee(token_checked);
+    uint256 fin_tot_balance = init_vault_balance + init_fee;
+
+    assert fin_tot_balance >= init_tot_balance, "joinPool should never lose the vault money";
 }
 
 rule harmlessJoinPoolTwoTokens {
@@ -74,6 +129,9 @@ rule harmlessJoinPoolTwoTokens {
     require Harness_poolIsTwoTokens(poolId);
 
     address sender;
+    legalAddress(sender);
+    noIllegalRelayer(sender);
+
     address recipient;
 
     address token_a;
@@ -83,12 +141,17 @@ rule harmlessJoinPoolTwoTokens {
 
     bool fromInternalBalance;
 
-    uint256 init_balance = getTokenBalance(currentContract, token_checked);
+    uint256 init_vault_balance = getTokenBalance(currentContract, token_checked);
+    uint256 init_fee = Harness_getACollectedFee(token_checked);
+    uint256 init_tot_balance = init_vault_balance + init_fee;
 
     Harness_doubleJoinPool(e, poolId, sender, recipient, token_a, token_b, maxAmountInA, maxAmountInB, fromInternalBalance);
-    uint256 final_balance = getTokenBalance(currentContract, token_checked);
+ 
+    uint256 fin_vault_balance = getTokenBalance(currentContract, token_checked);
+    uint256 fin_fee = Harness_getACollectedFee(token_checked);
+    uint256 fin_tot_balance = init_vault_balance + init_fee;
 
-    assert final_balance >= init_balance, "joinPool should never lose the vault money";
+    assert fin_tot_balance >= init_tot_balance, "joinPool should never lose the vault money";
 }
 
 rule noJoinPoolUserProfit {
@@ -96,8 +159,12 @@ rule noJoinPoolUserProfit {
     address token_checked;
 
     bytes32 poolId;
+    legalPool(poolId);
 
     address sender;
+    legalAddress(sender);
+    noIllegalRelayer(sender);
+
     address recipient;
 
     address token_a;
@@ -226,8 +293,7 @@ rule exitPoolMinUserProfit {
     mathint internal_profit = final_internal_balance - init_internal_balance;
     mathint total_profit = erc_profit + internal_profit;
 
-    bool no_fee = Harness_get_withdraw_fee() == 0;
-    assert (toInternalBalance || no_fee) => total_profit >= minAmountOut, 
+    assert toInternalBalance => total_profit >= minAmountOut, 
         "exitPool's recipient's profits are bounded from below at minAmountOut, and no taxes are charges when we deposit to an internal balance";
     
 }

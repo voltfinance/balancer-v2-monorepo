@@ -23,9 +23,13 @@ abstract contract/g' contracts/vault/AssetTransfersHandler.sol
 
 # remove problematic modifiers
 perl -0777 -i -pe 's/nonReentrant //g' contracts/vault/Swaps.sol
-perl -0777 -i -pe 's/noEmergencyPeriod //g' contracts/vault/Swaps.sol
+perl -0777 -i -pe 's/whenNotPaused //g' contracts/vault/Swaps.sol
 perl -0777 -i -pe 's/nonReentrant //g' contracts/vault/PoolBalances.sol
-perl -0777 -i -pe 's/noEmergencyPeriod //g' contracts/vault/PoolBalances.sol
+perl -0777 -i -pe 's/whenNotPaused //g' contracts/vault/PoolBalances.sol
+perl -0777 -i -pe 's/nonReentrant //g' contracts/vault/FlashLoans.sol
+perl -0777 -i -pe 's/whenNotPaused //g' contracts/vault/FlashLoans.sol
+perl -0777 -i -pe 's/, ReentrancyGuard//g' contracts/vault/FlashLoans.sol
+perl -0777 -i -pe 's/, TemporarilyPausable //g' contracts/vault/FlashLoans.sol
 
 # simplifying BallanceAllocation
 perl -0777 -i -pe 's/uint256 mask = 2\*\*\(224\) - 1;//g' contracts/vault/balances/BalanceAllocation.sol
@@ -57,3 +61,14 @@ perl -0777 -i -pe 's/function \_validateTokensAndGetBalances\(bytes32 poolId, IE
 
 # internal to public _getInternalBalance
 perl -0777 -i -pe 's/function \_getInternalBalance\(address account, IERC20 token\) internal view/function \_getInternalBalance\(address account, IERC20 token\) public view/g' contracts/vault/UserBalance.sol
+
+# remove unneccesary inputlength check
+perl -0777 -i -pe 's/InputHelpers\.ensureInputLengthMatch\(tokens\.length, amounts\.length\);//g' contracts/vault/FlashLoans.sol
+perl -0777 -i -pe 's/InputHelpers\.ensureInputLengthMatch\(change\.assets\.length, change\.limits\.length\);//g' contracts/vault/PoolBalances.sol
+
+# remove event emitting in join and exit pool
+perl -0777 -i -pe 's/bool positive = kind == PoolBalanceChangeKind\.JOIN;//g' contracts/vault/PoolBalances.sol
+perl -0777 -i -pe 's/emit PoolBalanceChanged\(\s*poolId,\s*sender,\s*tokens.\s*\/\/.*\s*\_unsafeCastToInt256\(amountsInOrOut, positive\),\s*paidProtocolSwapFeeAmounts\s*\);//g' contracts/vault/PoolBalances.sol
+
+# remove event from FlashLoans
+perl -0777 -i -pe 's/emit FlashLoan\(recipient, token, amounts\[i\], receivedFeeAmount\);//g' contracts/vault/FlashLoans.sol

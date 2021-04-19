@@ -148,4 +148,10 @@ contract simplifiedVaultHarness is Vault {
         bytes32 currentBalance = _getTwoTokenPoolBalance(poolId, token);
         return currentBalance.isNotZero();
     }
+
+    function Harness_getGeneralPoolTotalBalance(bytes32 poolId, IERC20 token) public view returns (uint256) {
+        bytes32 currentBalance = _getGeneralPoolBalance(poolId, token);
+        // return currentBalance.total();
+        return uint256(currentBalance);
+    }
 }

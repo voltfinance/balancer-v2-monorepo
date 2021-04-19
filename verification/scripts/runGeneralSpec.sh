@@ -6,5 +6,5 @@ certoraRun verification/harness/simplifiedVaultHarness.sol contracts/vault/Proto
   --solc solc7.6 \
   --cache balancerGeneral \
   --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2 \
-  --rule minimal_swap_info_pool_positive_total_if_registered \
-  --staging --msg "general spec r minimal_swap_info_pool_positive_total_if_registered"
+  --rule general_pool_positive_total_if_registered \
+  --staging --msg "general spec r general_pool_positive_total_if_registered with require invariant"

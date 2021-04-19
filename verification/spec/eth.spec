@@ -16,10 +16,6 @@ methods {
     0xd5c096c4 => NONDET // onJoinPool
     0x74f3b009 => NONDET // onExitPool
 
-    // Bottom two lines are probably useless
-    // 0x223b57e5 => NONDET // onSwapGivenOut
-    // 0x9588c193 => NONDET // onSwapGivenIn
-
     0xf84d066e => NONDET // queryBatchSwap()
 
     0x9d2c110c => NONDET // onSwap hook of a minimal swap info pool
@@ -30,12 +26,6 @@ methods {
 
     receiveFlashLoan(address[], uint256[], uint256[], bytes) => DISPATCHER(true)
 }
-
-/*
-    The swaps are expensive functions, so during rule development, these can be handy:
-    // require f.selector != 0x45eb8830; //batchSwapGivenOut
-    // require f.selector != 0x77c6b2c9; //batchSwapGivenIn
-*/
 
 function noIllegalRelayer(address suspect) {
     require !hasApprovedRelayer(currentContract, suspect);
@@ -63,18 +53,11 @@ rule vault_gets_no_eth {
     uint256 init_eth = Harness_vaultEthBalance();
 
     method f;
+    require f.selector != 0x945bcec9; // do not check batchSwap because of timeouts
 
-    /*
-    Limiting f because of timeouts
-    batchSwapGivenOut((bytes32,uint256,uint256,uint256,bytes)[],address[],(address,bool,address,bool),int256[],uint256)
-    batchSwapGivenIn((bytes32,uint256,uint256,uint256,bytes)[],address[],(address,bool,address,bool),int256[],uint256)
-    */
-    require f.selector != 0x45eb8830; //batchSwapGivenOut
-    require f.selector != 0x77c6b2c9; //batchSwapGivenIn
-
-    require f.selector != 0x945bcec9; // do not check batchSwap
     env e;
     legalAddress(e.msg.sender);
+
     calldataarg a;
     f(e, a);
 
@@ -88,14 +71,6 @@ rule receive_asset_called_at_most_once_per_token {
     uint256 init_count = Harness_get_receive_asset_counter(token);
 
     method f;
-
-    /*
-    Limiting f because of timeouts
-    batchSwapGivenOut((bytes32,uint256,uint256,uint256,bytes)[],address[],(address,bool,address,bool),int256[],uint256)
-    batchSwapGivenIn((bytes32,uint256,uint256,uint256,bytes)[],address[],(address,bool,address,bool),int256[],uint256)
-    */
-    require f.selector != 0x45eb8830; //batchSwapGivenOut
-    require f.selector != 0x77c6b2c9; //batchSwapGivenIn
 
     env e;
     calldataarg a;
