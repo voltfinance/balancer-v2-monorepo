@@ -31,12 +31,12 @@ perl -007 -i -pe 's/uint256 mask = 2\*\*\(224\) - 1;//g' contracts/vault/balance
 perl -007 -i -pe 's/uint256 mask = 2\*\*\(32\) - 1;//g' contracts/vault/balances/BalanceAllocation.sol
 perl -007 -i -pe 's/uint256 mask = 2\*\*\(112\) - 1;//g' contracts/vault/balances/BalanceAllocation.sol
 perl -007 -i -pe 's/uint256 mask = 2\*\*\(112\) - 1;//g' contracts/vault/balances/BalanceAllocation.sol
-
 perl -007 -i -pe 's/return \(uint256\(balance\) & mask\) == 0/return uint256\(balance\) == 0/g' contracts/vault/balances/BalanceAllocation.sol
 perl -007 -i -pe 's/return uint256\(balance >> 224\) & mask/return 0/g' contracts/vault/balances/BalanceAllocation.sol
 perl -007 -i -pe 's/return uint256\(balance >> 112\) & mask/return 0/g' contracts/vault/balances/BalanceAllocation.sol
 perl -007 -i -pe 's/return uint256\(balance\) & mask/return uint256\(balance\)/g' contracts/vault/balances/BalanceAllocation.sol
 perl -007 -i -pe 's/\(\(\_mostSignificant << 224\) \+ \(\_midSignificant << 112\) \+ \_leastSignificant\)/\(\_leastSignificant\)/g' contracts/vault/balances/BalanceAllocation.sol
-
-
 perl -007 -i -pe 's/& mask//g' contracts/vault/balances/BalanceAllocation.sol
+
+# remove swap deadline
+perl -007 -i -pe 's/       \_require\(block.timestamp <= deadline, Errors.SWAP_DEADLINE\)/     \/\/   \_require\(block.timestamp <= deadline, Errors.SWAP_DEADLINE\)/g' contracts/vault/Swaps.sol
