@@ -5,6 +5,7 @@ perl -0777 -i -pe 's/private/internal/g' contracts/vault/PoolRegistry.sol
 # External to public
 perl -0777 -i -pe 's/external/public/g' contracts/vault/UserBalance.sol
 perl -0777 -i -pe 's/external/public/g' contracts/vault/FlashLoans.sol
+perl -0777 -i -pe 's/external/public/g' contracts/vault/PoolBalances.sol
 
 # Virtualize
 perl -0777 -i -pe 's/_calculateFlashLoanFee\(uint256 amount\) internal/_calculateFlashLoanFee\(uint256 amount\) virtual internal/g' contracts/vault/Fees.sol
@@ -38,11 +39,19 @@ perl -0777 -i -pe 's/return uint256\(balance >> 112\) & mask/return 0/g' contrac
 perl -0777 -i -pe 's/return uint256\(balance\) & mask/return uint256\(balance\)/g' contracts/vault/balances/BalanceAllocation.sol
 perl -0777 -i -pe 's/\(\(\_mostSignificant << 224\) \+ \(\_midSignificant << 112\) \+ \_leastSignificant\)/\(\_leastSignificant\)/g' contracts/vault/balances/BalanceAllocation.sol
 
-
+perl -0777 -i -pe 's/return \(uint256\(balance\) & mask\) == 0/return uint256\(balance\) == 0/g' contracts/vault/balances/BalanceAllocation.sol
+perl -0777 -i -pe 's/return uint256\(balance >> 224\) & mask/return 0/g' contracts/vault/balances/BalanceAllocation.sol
+perl -0777 -i -pe 's/return uint256\(balance >> 112\) & mask/return 0/g' contracts/vault/balances/BalanceAllocation.sol
+perl -0777 -i -pe 's/return uint256\(balance\) & mask/return uint256\(balance\)/g' contracts/vault/balances/BalanceAllocation.sol
+perl -0777 -i -pe 's/\(\(\_mostSignificant << 224\) \+ \(\_midSignificant << 112\) \+ \_leastSignificant\)/\(\_leastSignificant\)/g' contracts/vault/balances/BalanceAllocation.sol
 perl -0777 -i -pe 's/& mask//g' contracts/vault/balances/BalanceAllocation.sol
+
+# remove swap deadline
+perl -0777 -i -pe 's/       \_require\(block.timestamp <= deadline, Errors.SWAP_DEADLINE\)/     \/\/   \_require\(block.timestamp <= deadline, Errors.SWAP_DEADLINE\)/g' contracts/vault/Swaps.sol
 
 # joinPool and exitPool to public
 perl -0777 -i -pe 's/external/public/g' contracts/vault/PoolBalances.sol
+
 # _validateTokensAndGetBalances to internal
 perl -0777 -i -pe 's/function \_validateTokensAndGetBalances\(bytes32 poolId, IERC20\[\] memory expectedTokens\)\s*private\s*view/function \_validateTokensAndGetBalances\(bytes32 poolId, IERC20\[\] memory expectedTokens\) internal view/g' contracts/vault/PoolBalances.sol
 
