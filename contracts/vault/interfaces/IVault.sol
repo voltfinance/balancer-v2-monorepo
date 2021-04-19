@@ -224,7 +224,7 @@ interface IVault is ISignaturesValidator {
     /**
      * @dev Emitted when a Pool is registered by calling `registerPool`.
      */
-    event PoolRegistered(bytes32 poolId);
+    event PoolRegistered(bytes32 indexed poolId, address indexed poolAddress, PoolSpecialization specialization);
 
     /**
      * @dev Returns a Pool's contract address and specialization setting.
@@ -652,6 +652,8 @@ interface IVault is ISignaturesValidator {
      *
      * The 'userData' field is ignored by the Vault, and forwarded as-is to `recipient` as part of the
      * `receiveFlashLoan` call.
+     *
+     * Emits `FlashLoan` events.
      */
     function flashLoan(
         IFlashLoanRecipient recipient,
@@ -659,6 +661,8 @@ interface IVault is ISignaturesValidator {
         uint256[] memory amounts,
         bytes memory userData
     ) external;
+
+    event FlashLoan(IFlashLoanRecipient indexed recipient, IERC20 indexed token, uint256 amount, uint256 feeAmount);
 
     // Asset Management
     //
