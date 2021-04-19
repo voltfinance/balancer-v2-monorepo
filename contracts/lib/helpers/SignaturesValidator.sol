@@ -15,15 +15,14 @@
 pragma solidity ^0.7.0;
 
 import "./BalancerErrors.sol";
-
+import "./ISignaturesValidator.sol";
 import "../openzeppelin/EIP712.sol";
-import "../../vault/interfaces/ISignaturesValidator.sol";
 
 /**
  * @dev Utility for signing Solidity function calls.
  *
  * This contract relies on the fact that Solidity contracts can be called with extra calldata, and enables
- * metatransaction schemes by appending an EIP712 signature of the original calldata at the end.
+ * meta-transaction schemes by appending an EIP712 signature of the original calldata at the end.
  *
  * Derived contracts must implement the `_typeHash` function to map function selectors to EIP712 structs.
  */
@@ -85,7 +84,7 @@ abstract contract SignaturesValidator is ISignaturesValidator, EIP712 {
      * @dev Returns the EIP712 type hash for the current entry point function, which can be identified by its function
      * selector (available as `msg.sig`).
      *
-     * The typehash must conform to the following format:
+     * The type hash must conform to the following format:
      *  <name>(bytes calldata, address sender, uint256 nonce, uint256 deadline)
      *
      * If 0x00, all signatures will be considered invalid.

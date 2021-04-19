@@ -20,8 +20,10 @@ import "./IWETH.sol";
 import "./IAsset.sol";
 import "./IAuthorizer.sol";
 import "./IFlashLoanRecipient.sol";
-import "./ISignaturesValidator.sol";
 import "../ProtocolFeesCollector.sol";
+
+import "../../lib/helpers/ISignaturesValidator.sol";
+import "../../lib/helpers/ITemporarilyPausable.sol";
 
 pragma solidity ^0.7.0;
 
@@ -29,7 +31,7 @@ pragma solidity ^0.7.0;
  * @dev Full external interface for the Vault core contract - no external or public methods exist in the contract that
  * don't override one of these declarations.
  */
-interface IVault is ISignaturesValidator {
+interface IVault is ISignaturesValidator, ITemporarilyPausable {
     // Generalities about the Vault:
     //
     // - Whenever documentation refers to 'tokens', it strictly refers to ERC20-compliant token contracts. Tokens are
@@ -61,9 +63,12 @@ interface IVault is ISignaturesValidator {
      *
      * Emits an `AuthorizerChanged` event.
      */
-    function changeAuthorizer(IAuthorizer newAuthorizer) external;
+    function setAuthorizer(IAuthorizer newAuthorizer) external;
 
-    event AuthorizerChanged(IAuthorizer indexed oldAuthorizer, IAuthorizer indexed newAuthorizer);
+    /**
+     * @dev Emitted when a new authorizer is set by `setAuthorizer`.
+     */
+    event AuthorizerChanged(IAuthorizer indexed newAuthorizer);
 
     // Relayers
     //
@@ -95,6 +100,9 @@ interface IVault is ISignaturesValidator {
         bool approved
     ) external;
 
+    /**
+     * @dev Emitted every time a relayer is approved or disapproved by `setRelayerApproval`.
+     */
     event RelayerApprovalChanged(address indexed relayer, address indexed sender, bool approved);
 
     // Internal Balance
@@ -262,7 +270,7 @@ interface IVault is ISignaturesValidator {
     /**
      * @dev Emitted when a Pool registers tokens by calling `registerTokens`.
      */
-    event TokensRegistered(bytes32 poolId, IERC20[] tokens, address[] assetManagers);
+    event TokensRegistered(bytes32 indexed poolId, IERC20[] tokens, address[] assetManagers);
 
     /**
      * @dev Deregisters `tokens` for the `poolId` Pool. Must be called by the Pool's contract.
@@ -280,7 +288,7 @@ interface IVault is ISignaturesValidator {
     /**
      * @dev Emitted when a Pool deregisters tokens by calling `deregisterTokens`.
      */
-    event TokensDeregistered(bytes32 poolId, IERC20[] tokens);
+    event TokensDeregistered(bytes32 indexed poolId, IERC20[] tokens);
 
     /**
      * @dev Returns detailed information for a Pool's registered token.
@@ -662,6 +670,9 @@ interface IVault is ISignaturesValidator {
         bytes memory userData
     ) external;
 
+    /**
+     * @dev Emitted for each individual flash loan performed by `flashLoan`.
+     */
     event FlashLoan(IFlashLoanRecipient indexed recipient, IERC20 indexed token, uint256 amount, uint256 feeAmount);
 
     // Asset Management

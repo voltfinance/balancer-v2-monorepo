@@ -93,10 +93,10 @@ describe('BasePool', function () {
     });
 
     it('tracks authorizer changes in the vault', async () => {
-      const action = await actionId(vault, 'changeAuthorizer');
+      const action = await actionId(vault, 'setAuthorizer');
       await authorizer.connect(admin).grantRole(action, admin.address);
 
-      await vault.connect(admin).changeAuthorizer(other.address);
+      await vault.connect(admin).setAuthorizer(other.address);
 
       expect(await pool.getAuthorizer()).to.equal(other.address);
     });
@@ -151,7 +151,7 @@ describe('BasePool', function () {
           it('emits an event', async () => {
             const receipt = await (await pool.connect(sender).setSwapFeePercentage(newSwapFeePercentage)).wait();
 
-            expectEvent.inReceipt(receipt, 'SwapFeeChanged', { swapFeePercentage: newSwapFeePercentage });
+            expectEvent.inReceipt(receipt, 'SwapFeePercentageChanged', { swapFeePercentage: newSwapFeePercentage });
           });
         });
 
