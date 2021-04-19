@@ -31,6 +31,7 @@ perl -007 -i -pe 's/uint256 mask = 2\*\*\(224\) - 1;//g' contracts/vault/balance
 perl -007 -i -pe 's/uint256 mask = 2\*\*\(32\) - 1;//g' contracts/vault/balances/BalanceAllocation.sol
 perl -007 -i -pe 's/uint256 mask = 2\*\*\(112\) - 1;//g' contracts/vault/balances/BalanceAllocation.sol
 perl -007 -i -pe 's/uint256 mask = 2\*\*\(112\) - 1;//g' contracts/vault/balances/BalanceAllocation.sol
+
 perl -007 -i -pe 's/return \(uint256\(balance\) & mask\) == 0/return uint256\(balance\) == 0/g' contracts/vault/balances/BalanceAllocation.sol
 perl -007 -i -pe 's/return uint256\(balance >> 224\) & mask/return 0/g' contracts/vault/balances/BalanceAllocation.sol
 perl -007 -i -pe 's/return uint256\(balance >> 112\) & mask/return 0/g' contracts/vault/balances/BalanceAllocation.sol
@@ -40,3 +41,7 @@ perl -007 -i -pe 's/& mask//g' contracts/vault/balances/BalanceAllocation.sol
 
 # remove swap deadline
 perl -007 -i -pe 's/       \_require\(block.timestamp <= deadline, Errors.SWAP_DEADLINE\)/     \/\/   \_require\(block.timestamp <= deadline, Errors.SWAP_DEADLINE\)/g' contracts/vault/Swaps.sol
+# joinPool and exitPool to public
+perl -0777 -i -pe 's/external/public/g' contracts/vault/PoolBalances.sol
+# _validateTokensAndGetBalances to internal
+perl -0777 -i -pe 's/function \_validateTokensAndGetBalances\(bytes32

@@ -6,14 +6,19 @@ import "../../contracts/vault/PoolRegistry.sol";
 import "./simplifiedVaultHarness.sol";
 
 contract JoinExitPoolHarness is simplifiedVaultHarness {
-    constructor(IAuthorizer authorizer) simplifiedVaultHarness(authorizer) {}
+    constructor(IAuthorizer authorizer,
+        IWETH weth,
+        uint256 emergencyPeriod,
+        uint256 emergencyPeriodCheckExtension
+    ) simplifiedVaultHarness(authorizer, weth, emergencyPeriod, emergencyPeriodCheckExtension) { }
+
 
     /*
     function joinPool(
         bytes32 poolId,
         address sender,
         address recipient,
-        IERC20[] memory tokens,
+        IAsset[] memory tokens,
         uint256[] memory maxAmountsIn,
         bool fromInternalBalance,
         bytes memory userData
@@ -22,18 +27,19 @@ contract JoinExitPoolHarness is simplifiedVaultHarness {
 
     bytes data;
 
-    function Harness_singleJoinPool(bytes32 poolId, address sender, address recipient, IERC20 token, uint256 maxAmountIn, bool fromInternalBalance) public {
-        IERC20[] memory tokens_array = new IERC20[](1);
+    function Harness_singleJoinPool(bytes32 poolId, address sender, address payable recipient, IAsset token, uint256 maxAmountIn, bool fromInternalBalance) public {
+        IAsset[] memory tokens_array = new IAsset[](1);
         tokens_array[0] = token;
         uint256[] memory amounts_array = new uint256[](1);
         amounts_array[0] = maxAmountIn;
-        joinPool(poolId, sender, recipient, tokens_array, amounts_array, fromInternalBalance, data);
+        JoinPoolRequest memory req = JoinPoolRequest(tokens_array, amounts_array, data, fromInternalBalance);
+        joinPool(poolId, sender, recipient, req);
     }
 
-    function Harness_doubleJoinPool(bytes32 poolId, address sender, address recipient, IERC20 token_a, IERC20 token_b, 
+    function Harness_doubleJoinPool(bytes32 poolId, address sender, address payable recipient, IAsset token_a, IAsset token_b, 
                                      uint256 maxAmountInA, uint256 maxAmountInB, bool fromInternalBalance) public {
 
-        IERC20[] memory tokens_array = new IERC20[](2);
+        IAsset[] memory tokens_array = new IAsset[](2);
         tokens_array[0] = token_a;
         tokens_array[1] = token_b;
 
@@ -41,7 +47,8 @@ contract JoinExitPoolHarness is simplifiedVaultHarness {
         amounts_array[0] = maxAmountInA;
         amounts_array[1] = maxAmountInB;
 
-        joinPool(poolId, sender, recipient, tokens_array, amounts_array, fromInternalBalance, data);
+        JoinPoolRequest memory req = JoinPoolRequest(tokens_array, amounts_array, data, fromInternalBalance);
+        joinPool(poolId, sender, recipient, req);
     }
 
     function getTokenBalance(address user, IERC20 token) public view returns (uint256) {
@@ -53,26 +60,27 @@ contract JoinExitPoolHarness is simplifiedVaultHarness {
         bytes32 poolId,
         address sender,
         address recipient,
-        IERC20[] memory tokens,
+        IAsset[] memory tokens,
         uint256[] memory minAmountsOut,
         bool toInternalBalance,
         bytes memory userData
     )
     */
 
-    function Harness_singleExitPool(bytes32 poolId, address sender, address recipient, IERC20 token,
+    function Harness_singleExitPool(bytes32 poolId, address sender, address payable recipient, IAsset token,
                                     uint256 minAmountOut, bool toInternalBalance) public {
-        IERC20[] memory tokens_array = new IERC20[](1);
+        IAsset[] memory tokens_array = new IAsset[](1);
         tokens_array[0] = token;
         uint256[] memory amounts_array = new uint256[](1);
         amounts_array[0] = minAmountOut;
-        exitPool(poolId, sender, recipient, tokens_array, amounts_array, toInternalBalance, data);
+        ExitPoolRequest memory req = ExitPoolRequest(tokens_array, amounts_array, data, toInternalBalance);
+        exitPool(poolId, sender, recipient, req);
     }
 
-    function Harness_doubleExitPool(bytes32 poolId, address sender, address recipient, IERC20 token_a, 
-                                    IERC20 token_b, uint256 minAmountOutA, uint256 minAmountOutB, 
+    function Harness_doubleExitPool(bytes32 poolId, address sender, address payable recipient, IAsset token_a, 
+                                    IAsset token_b, uint256 minAmountOutA, uint256 minAmountOutB, 
                                     bool toInternalBalance) public {
-        IERC20[] memory tokens_array = new IERC20[](2);
+        IAsset[] memory tokens_array = new IAsset[](2);
         tokens_array[0] = token_a;
         tokens_array[1] = token_b;
 
@@ -80,7 +88,8 @@ contract JoinExitPoolHarness is simplifiedVaultHarness {
         amounts_array[0] = minAmountOutA;
         amounts_array[1] = minAmountOutB;
 
-        exitPool(poolId, sender, recipient, tokens_array, amounts_array, toInternalBalance, data);
+        ExitPoolRequest memory req = ExitPoolRequest(tokens_array, amounts_array, data, toInternalBalance);
+        exitPool(poolId, sender, recipient, req);
     }
 
     function Harness_get_pool_cash_like_exit_pool (bytes32 poolId, IERC20 token) public view returns (uint256){
@@ -88,10 +97,6 @@ contract JoinExitPoolHarness is simplifiedVaultHarness {
         tokens_array[0] = token;
         bytes32[] memory balances = _validateTokensAndGetBalances(poolId, tokens_array);
         return uint256(balances[0]);
-    }
-
-    function Harness_get_withdraw_fee() public view returns (uint256) {
-        return _protocolWithdrawFee;
     }
 
 }
