@@ -16,6 +16,7 @@ contract simplifiedVaultHarness is Vault {
     */
     using BalanceAllocation for bytes32;
     using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableMap for EnumerableMap.IERC20ToBytes32Map;
 
     constructor(IAuthorizer authorizer,
         IWETH weth,
@@ -120,7 +121,11 @@ contract simplifiedVaultHarness is Vault {
     }
 
     function Harness_isTokenRegisteredForMinimalSwapPool(bytes32 poolId, address token) public view returns (bool) {
-        return _minimalSwapInfoPoolsTokens[poolId].contains(address(token));
+        return _minimalSwapInfoPoolsTokens[poolId].contains(token);
+    }
+
+    function Harness_isTokenRegisteredForGeneralPool(bytes32 poolId, IERC20 token) public view returns (bool) {
+        return _generalPoolsBalances[poolId].contains(token);
     }
 
     function Harness_GeneralPoolTotalBalanceIsNotZero(bytes32 poolId, IERC20 token) public view returns (bool) {

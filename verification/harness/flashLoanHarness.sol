@@ -2,7 +2,7 @@ pragma solidity ^0.7.0;
 pragma experimental ABIEncoderV2;
 
 // import "../../contracts/vault/Authorization.sol";
-import "../../contracts/vault/FlashLoanProvider.sol";
+import "../../contracts/vault/FlashLoans.sol";
 import "./internalBalanceHarness.sol";
 
 /*
@@ -24,7 +24,7 @@ contract flashLoanHarness is internalBalanceHarness{
 
     bytes b;
 
-    function Harness_singleFlashLoan(IFlashLoanReceiver receiver, IERC20 token, uint256 amount) public {
+    function Harness_singleFlashLoan(IFlashLoanRecipient receiver, IERC20 token, uint256 amount) public {
         IERC20[] memory token_array = new IERC20[](1);
         token_array[0] = token;
         uint256[] memory amount_array = new uint256[](1);
@@ -32,7 +32,7 @@ contract flashLoanHarness is internalBalanceHarness{
         flashLoan(receiver, token_array, amount_array, b);
     }
 
-    function Harness_doubleFlashLoan(IFlashLoanReceiver receiver,
+    function Harness_doubleFlashLoan(IFlashLoanRecipient receiver,
         IERC20 token1,
         IERC20 token2,
         uint256 amount1,
