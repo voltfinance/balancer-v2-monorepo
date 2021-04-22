@@ -74,6 +74,7 @@ rule tokens_are_static_two_token_pools {
     address token_post = Harness_getPoolTokenByIndex(poolId, index);
     assert token_pre == token_post, 
         "The order of tokens in a pool should never changes besides calls to `registerTokens` and `deregisterTokens`";
+        // Why does it pass on registerTokens?!
 }
 
 rule valid_order_of_two_pool_tokens {

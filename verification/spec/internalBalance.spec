@@ -63,7 +63,7 @@ rule only_authorizer_can_decrease_internal_balance {
 
     uint256 final_balance = Harness_getAnInternalBalance(user, token);
     mathint balance_diff = final_balance - init_balance;
-    bool authorized = Harness_isAuthenticatedByUser(e, user) || Harness_has_valid_signature(user);
+    bool authorized = Harness_isAuthenticatedForUser(e, user) || Harness_has_valid_signature(user);
 
     assert balance_diff < 0 => authorized, "only an authorized message sender can decrease a user's internal balance";
 }

@@ -41,13 +41,13 @@ function legalAddress(address suspect) {
     require suspect != feesCollector;
 }
 
-function legalPool(bytes32 pool) {
-    require pool != currentContract;
-    require pool != ERC20;
-    require pool != weth;
-    require pool != borrower;
-    require pool != feesCollector;
-}
+// function legalPool(bytes32 pool) {
+//     require pool != currentContract;
+//     require pool != ERC20;
+//     require pool != weth;
+//     require pool != borrower;
+//     require pool != feesCollector;
+// }
 
 function noIllegalRelayer(address suspect) {
     require !hasApprovedRelayer(currentContract, suspect);
@@ -71,6 +71,9 @@ rule joinPoolProfitability {
 
     bytes32 poolId;
     address sender;
+    legalAddress(sender);
+    noIllegalRelayer(sender);
+
     address recipient;
 
     address token_a;
@@ -159,7 +162,6 @@ rule noJoinPoolUserProfit {
     address token_checked;
 
     bytes32 poolId;
-    legalPool(poolId);
 
     address sender;
     legalAddress(sender);
@@ -188,6 +190,9 @@ rule joinPoolCappedUserLoss {
     bytes32 poolId;
 
     address sender;
+    legalAddress(sender);
+    noIllegalRelayer(sender);
+
     address recipient;
 
     address token;
@@ -209,35 +214,6 @@ rule joinPoolCappedUserLoss {
     assert total_loss <= maxAmountIn, "The sender's losses are capped at maxAmountIn";
 }
 
-/*
-//Rule times out
-rule exitPoolProfitabilityTwoTokensPool {
-    env e;
-    address token_checked;
-
-    bytes32 poolId;
-    require Harness_poolIsTwoTokens(poolId);
-
-    address sender;
-    address recipient;
-
-    address token_a;
-    address token_b;
-    uint256 minAmountOutA;
-    uint256 minAmountOutB;
-
-    bool toInternalBalance;
-
-    uint256 init_fee = Harness_getACollectedFee(token_checked);
-
-    Harness_doubleExitPool(e, poolId, sender, recipient, token_a, token_b, minAmountOutA, minAmountOutB, 
-                           toInternalBalance);
-    uint256 final_fee = Harness_getACollectedFee(token_checked);
-
-    // assert final_fee >= init_fee, "exitPool should never lose the vault tax money";
-    assert false;
-}
-*/
 
 /* The rule below is a weaker form of rules to follow. It it useful for debugging if the more complex rules fail.
 */
