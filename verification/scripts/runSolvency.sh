@@ -6,6 +6,6 @@ certoraRun verification/harness/solvencyHarness.sol contracts/vault/ProtocolFees
   --link solvencyHarness:_weth=WETH \
   --solc solc7.6 \
   --cache balancerSolvency \
-  --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2,-nonIterEdgeBlocksRemoval \
+  --settings -ignoreViewFunctions,-assumeUnwindCond,-copyLoopUnroll=2,-b=2,-nonIterEdgeBlocksRemoval,-t=1200 \
   --rule sum_of_internal_balance_less_than_vault_funds \
-  --staging --msg "sum_of_internal_balance_less_than_vault_funds first try"
+  --staging --msg "sum_of_internal_balance_less_than_vault_funds with t=1200"
