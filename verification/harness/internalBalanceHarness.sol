@@ -14,7 +14,7 @@ contract internalBalanceHarness is simplifiedVaultHarness {
         uint256 emergencyPeriodCheckExtension
     ) simplifiedVaultHarness(authorizer, weth, emergencyPeriod, emergencyPeriodCheckExtension) { }
 
-    function Harness_isAuthenticatedByUser(address user) public view returns (bool) {
+    function Harness_isAuthenticatedForUser(address user) public view returns (bool) {
         if (user == msg.sender) return true;
         bool user_approved = _hasApprovedRelayer(user, msg.sender);
         bool sys_approved = authorizations[msg.sender];
