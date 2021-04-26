@@ -5,6 +5,6 @@ certoraRun verification/harness/joinExitPoolHarness.sol:JoinExitPoolHarness veri
   --link JoinExitPoolHarness:_weth=WETH \
   --solc solc7.6 \
   --cache balancerAdditivity \
-  --settings -ignoreViewFunctions,-assumeUnwindCond,-b=2 \
-  --rule harmlessJoinPoolTwoTokens \
-  --staging shelly/optimizerWeeklyTesting --msg "joinExitPool r harmlessJoinPoolTwoTokens with correct balance check"
+  --settings -ignoreViewFunctions,-assumeUnwindCond,-b=2,-t=1200 \
+  --rule joinPoolProfitability \
+  --staging shelly/optimizerWeeklyTesting --msg "joinExitPool r joinPoolProfitability legal address"
