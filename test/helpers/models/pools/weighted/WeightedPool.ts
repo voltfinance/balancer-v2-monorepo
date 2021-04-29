@@ -11,7 +11,7 @@ import Token from '../../tokens/Token';
 import TokenList from '../../tokens/TokenList';
 import TypesConverter from '../../types/TypesConverter';
 import WeightedPoolDeployer from './WeightedPoolDeployer';
-import { Account } from '../../types/types';
+import { Account, TxParams } from '../../types/types';
 import {
   JoinExitWeightedPool,
   InitWeightedPool,
@@ -27,6 +27,8 @@ import {
   ExitQueryResult,
   JoinQueryResult,
   PoolQueryResult,
+  MiscData,
+  Sample,
 } from './types';
 import {
   calculateInvariant,
@@ -37,7 +39,10 @@ import {
   calculateOneTokenSwapFeeAmount,
   calcInGivenOut,
   calculateMaxOneTokenSwapFeeAmount,
+  calculateSpotPrice,
+  calculateBPTPrice,
 } from '../../../math/weighted';
+import { Swap } from '../../vault/types';
 
 const SWAP_GIVEN = { IN: 0, OUT: 1 };
 const MAX_IN_RATIO = fp(0.3);
@@ -52,6 +57,7 @@ export default class WeightedPool {
   weights: BigNumberish[];
   swapFeePercentage: BigNumberish;
   vault: Vault;
+  twoTokens: boolean;
 
   static async create(params: RawWeightedPoolDeployment = {}): Promise<WeightedPool> {
     return WeightedPoolDeployer.deploy(params);
@@ -63,7 +69,8 @@ export default class WeightedPool {
     vault: Vault,
     tokens: TokenList,
     weights: BigNumberish[],
-    swapFeePercentage: BigNumberish
+    swapFeePercentage: BigNumberish,
+    twoTokens: boolean
   ) {
     this.instance = instance;
     this.poolId = poolId;
@@ -71,6 +78,7 @@ export default class WeightedPool {
     this.tokens = tokens;
     this.weights = weights;
     this.swapFeePercentage = swapFeePercentage;
+    this.twoTokens = twoTokens;
   }
 
   get address(): string {
@@ -141,6 +149,21 @@ export default class WeightedPool {
     return currentBalances[tokenIndex].mul(MAX_OUT_RATIO).div(fp(1));
   }
 
+  async isOracleEnabled(): Promise<boolean> {
+    if (!this.twoTokens) throw Error('Cannot query misc data for non-2-tokens weighted pool');
+    return (await this.getMiscData()).oracleEnabled;
+  }
+
+  async getMiscData(): Promise<MiscData> {
+    if (!this.twoTokens) throw Error('Cannot query misc data for non-2-tokens weighted pool');
+    return this.instance.getMiscData();
+  }
+
+  async getOracleSample(oracleIndex?: BigNumberish): Promise<Sample> {
+    if (!oracleIndex) oracleIndex = (await this.getMiscData()).oracleIndex;
+    return this.instance.getSample(oracleIndex);
+  }
+
   async getSwapFeePercentage(): Promise<BigNumber> {
     return this.instance.getSwapFeePercentage();
   }
@@ -162,6 +185,21 @@ export default class WeightedPool {
     token: Token
   ): Promise<{ cash: BigNumber; managed: BigNumber; lastChangeBlock: BigNumber; assetManager: string }> {
     return this.vault.getPoolTokenInfo(this.poolId, token);
+  }
+
+  async estimateSpotPrice(currentBalances?: BigNumberish[]): Promise<BigNumber> {
+    if (!currentBalances) currentBalances = await this.getBalances();
+    return calculateSpotPrice(currentBalances, this.weights);
+  }
+
+  async estimateBptPrice(
+    tokenIndex: number,
+    currentBalance?: BigNumberish,
+    currentSupply?: BigNumberish
+  ): Promise<BigNumber> {
+    if (!currentBalance) currentBalance = (await this.getBalances())[tokenIndex];
+    if (!currentSupply) currentSupply = await this.totalSupply();
+    return calculateBPTPrice(currentBalance, this.weights[tokenIndex], currentSupply);
   }
 
   async estimateInvariant(currentBalances?: BigNumberish[]): Promise<BigNumber> {
@@ -276,45 +314,18 @@ export default class WeightedPool {
   }
 
   async swapGivenIn(params: SwapWeightedPool): Promise<BigNumber> {
-    const currentBalances = await this.getBalances();
-    const [tokenIn, tokenOut] = this.tokens.indicesOf(params.in, params.out);
-
-    return this.instance.onSwap(
-      {
-        kind: SWAP_GIVEN.IN,
-        poolId: this.poolId,
-        from: params.from ?? ZERO_ADDRESS,
-        to: params.recipient ?? ZERO_ADDRESS,
-        tokenIn: this.tokens.get(params.in)?.address ?? ZERO_ADDRESS,
-        tokenOut: this.tokens.get(params.out)?.address ?? ZERO_ADDRESS,
-        lastChangeBlock: params.lastChangeBlock ?? 0,
-        userData: params.data ?? '0x',
-        amount: params.amount,
-      },
-      currentBalances[tokenIn] || bn(0),
-      currentBalances[tokenOut] || bn(0)
-    );
+    return this.swap(await this._buildSwapParams(SWAP_GIVEN.IN, params));
   }
 
   async swapGivenOut(params: SwapWeightedPool): Promise<BigNumber> {
-    const currentBalances = await this.getBalances();
-    const [tokenIn, tokenOut] = this.tokens.indicesOf(params.in, params.out);
+    return this.swap(await this._buildSwapParams(SWAP_GIVEN.OUT, params));
+  }
 
-    return this.instance.onSwap(
-      {
-        kind: SWAP_GIVEN.OUT,
-        poolId: this.poolId,
-        from: params.from ?? ZERO_ADDRESS,
-        to: params.recipient ?? ZERO_ADDRESS,
-        tokenIn: this.tokens.get(params.in)?.address ?? ZERO_ADDRESS,
-        tokenOut: this.tokens.get(params.out)?.address ?? ZERO_ADDRESS,
-        lastChangeBlock: params.lastChangeBlock ?? 0,
-        userData: params.data ?? '0x',
-        amount: params.amount,
-      },
-      currentBalances[tokenIn] || bn(0),
-      currentBalances[tokenOut] || bn(0)
-    );
+  async swap(params: Swap): Promise<BigNumber> {
+    const tx = await this.vault.minimalSwap(params);
+    const receipt = await (await tx).wait();
+    const { amount } = expectEvent.inReceipt(receipt, 'Swap').args;
+    return amount;
   }
 
   async init(params: InitWeightedPool): Promise<JoinResult> {
@@ -428,6 +439,25 @@ export default class WeightedPool {
     );
   }
 
+  private async _buildSwapParams(kind: number, params: SwapWeightedPool): Promise<Swap> {
+    const currentBalances = await this.getBalances();
+    const [tokenIn, tokenOut] = this.tokens.indicesOf(params.in, params.out);
+    return {
+      kind,
+      poolAddress: this.address,
+      poolId: this.poolId,
+      from: params.from,
+      to: params.recipient ?? ZERO_ADDRESS,
+      tokenIn: this.tokens.get(params.in)?.address ?? ZERO_ADDRESS,
+      tokenOut: this.tokens.get(params.out)?.address ?? ZERO_ADDRESS,
+      balanceTokenIn: currentBalances[tokenIn] || bn(0),
+      balanceTokenOut: currentBalances[tokenOut] || bn(0),
+      lastChangeBlock: params.lastChangeBlock ?? 0,
+      data: params.data ?? '0x',
+      amount: params.amount,
+    };
+  }
+
   private _buildInitParams(params: InitWeightedPool): JoinExitWeightedPool {
     const { initialBalances: balances } = params;
     const amountsIn = Array.isArray(balances) ? balances : Array(this.tokens.length).fill(balances);
@@ -450,6 +480,7 @@ export default class WeightedPool {
     return {
       from: params.from,
       recipient: params.recipient,
+      lastChangeBlock: params.lastChangeBlock,
       currentBalances: params.currentBalances,
       protocolFeePercentage: params.protocolFeePercentage,
       data: encodeJoinWeightedPool({
@@ -464,6 +495,7 @@ export default class WeightedPool {
     return {
       from: params.from,
       recipient: params.recipient,
+      lastChangeBlock: params.lastChangeBlock,
       currentBalances: params.currentBalances,
       protocolFeePercentage: params.protocolFeePercentage,
       data: encodeJoinWeightedPool({
@@ -480,6 +512,7 @@ export default class WeightedPool {
     return {
       from: params.from,
       recipient: params.recipient,
+      lastChangeBlock: params.lastChangeBlock,
       currentBalances: params.currentBalances,
       protocolFeePercentage: params.protocolFeePercentage,
       data: encodeExitWeightedPool({
@@ -494,6 +527,7 @@ export default class WeightedPool {
     return {
       from: params.from,
       recipient: params.recipient,
+      lastChangeBlock: params.lastChangeBlock,
       currentBalances: params.currentBalances,
       protocolFeePercentage: params.protocolFeePercentage,
       data: encodeExitWeightedPool({
@@ -508,6 +542,7 @@ export default class WeightedPool {
     return {
       from: params.from,
       recipient: params.recipient,
+      lastChangeBlock: params.lastChangeBlock,
       currentBalances: params.currentBalances,
       protocolFeePercentage: params.protocolFeePercentage,
       data: encodeExitWeightedPool({
@@ -521,5 +556,10 @@ export default class WeightedPool {
     const action = await actionId(this.instance, 'setPaused');
     await this.vault.grantRole(action);
     await this.instance.setPaused(true);
+  }
+
+  async enableOracle(txParams: TxParams): Promise<void> {
+    const pool = txParams.from ? this.instance.connect(txParams.from) : this.instance;
+    await pool.enableOracle();
   }
 }

@@ -14,11 +14,13 @@ async function main() {
 
   await measureDeployment('WeightedPoolFactory', [vault.address]);
 
+  await measureDeployment('WeightedPool2TokensFactory', [vault.address]);
+
   await measureDeployment('StablePoolFactory', [vault.address]);
 }
 
 async function measureDeployment(name: string, args: Array<unknown>): Promise<Contract> {
-  console.log(`# ${name}`);
+  console.log(`\n# ${name}`);
 
   const contract = await deploy(name, { args });
 

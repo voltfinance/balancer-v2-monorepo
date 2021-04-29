@@ -13,10 +13,12 @@ export type RawWeightedPoolDeployment = {
   swapFeePercentage?: BigNumberish;
   pauseWindowDuration?: BigNumberish;
   bufferPeriodDuration?: BigNumberish;
+  oracleEnabled?: boolean;
   owner?: Account;
   admin?: SignerWithAddress;
   from?: SignerWithAddress;
   fromFactory?: boolean;
+  twoTokens?: boolean;
 };
 
 export type WeightedPoolDeployment = {
@@ -25,6 +27,8 @@ export type WeightedPoolDeployment = {
   swapFeePercentage: BigNumberish;
   pauseWindowDuration: BigNumberish;
   bufferPeriodDuration: BigNumberish;
+  twoTokens: boolean;
+  oracleEnabled: boolean;
   owner: Account;
   admin?: SignerWithAddress;
   from?: SignerWithAddress;
@@ -61,6 +65,7 @@ export type JoinGivenInWeightedPool = {
   minimumBptOut?: BigNumberish;
   from?: SignerWithAddress;
   recipient?: Account;
+  lastChangeBlock?: BigNumberish;
   currentBalances?: BigNumberish[];
   protocolFeePercentage?: BigNumberish;
 };
@@ -70,6 +75,7 @@ export type JoinGivenOutWeightedPool = {
   bptOut: BigNumberish;
   from?: SignerWithAddress;
   recipient?: Account;
+  lastChangeBlock?: BigNumberish;
   currentBalances?: BigNumberish[];
   protocolFeePercentage?: BigNumberish;
 };
@@ -79,6 +85,7 @@ export type ExitGivenOutWeightedPool = {
   maximumBptIn?: BigNumberish;
   recipient?: Account;
   from?: SignerWithAddress;
+  lastChangeBlock?: BigNumberish;
   currentBalances?: BigNumberish[];
   protocolFeePercentage?: BigNumberish;
 };
@@ -88,6 +95,7 @@ export type SingleExitGivenInWeightedPool = {
   token: number | Token;
   recipient?: Account;
   from?: SignerWithAddress;
+  lastChangeBlock?: BigNumberish;
   currentBalances?: BigNumberish[];
   protocolFeePercentage?: BigNumberish;
 };
@@ -96,6 +104,7 @@ export type MultiExitGivenInWeightedPool = {
   bptIn: BigNumberish;
   recipient?: Account;
   from?: SignerWithAddress;
+  lastChangeBlock?: BigNumberish;
   currentBalances?: BigNumberish[];
   protocolFeePercentage?: BigNumberish;
 };
@@ -118,6 +127,25 @@ export type JoinQueryResult = {
 export type ExitQueryResult = {
   bptIn: BigNumber;
   amountsOut: BigNumber[];
+};
+
+export type MiscData = {
+  swapFeePercentage: BigNumber;
+  oracleEnabled: boolean;
+  oracleIndex: BigNumber;
+  oracleSampleCreationTimestamp: BigNumber;
+  logTotalSupply: BigNumber;
+  logInvariant: BigNumber;
+};
+
+export type Sample = {
+  logPairPrice: BigNumber;
+  accLogPairPrice: BigNumber;
+  logBptPrice: BigNumber;
+  accLogBptPrice: BigNumber;
+  logInvariant: BigNumber;
+  accLogInvariant: BigNumber;
+  timestamp: BigNumber;
 };
 
 export type PoolQueryResult = JoinQueryResult | ExitQueryResult;

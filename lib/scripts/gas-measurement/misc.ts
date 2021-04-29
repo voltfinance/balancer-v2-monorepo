@@ -12,6 +12,7 @@ import { encodeJoinWeightedPool } from '../../helpers/weightedPoolEncoding';
 import { bn } from '../../helpers/numbers';
 import { deployPoolFromFactory, PoolName } from '../../helpers/pools';
 import { deploySortedTokens, mintTokens, TokenList } from '../../helpers/tokens';
+import { advanceTime, MONTH } from '../../helpers/time';
 
 export const tokenSymbols = ['AAA', 'BBB', 'CCC', 'DDD', 'EEE', 'FFF', 'GGG', 'HHH'];
 
@@ -76,19 +77,20 @@ export async function deployPool(vault: Contract, tokens: TokenList, poolName: P
   let pool: Contract;
   let joinUserData: string;
 
-  if (poolName == 'WeightedPool') {
+  if (poolName == 'WeightedPool' || poolName == 'WeightedPool2Tokens') {
     const weights = toNormalizedWeights(symbols.map(() => fp(1))); // Equal weights for all tokens
 
-    pool = await deployPoolFromFactory(vault, 'WeightedPool', {
+    const commonParams = [tokenAddresses, weights, swapFeePercentage];
+    pool = await deployPoolFromFactory(vault, poolName, {
       from: creator,
-      parameters: [tokenAddresses, weights, swapFeePercentage],
+      parameters: poolName == 'WeightedPool2Tokens' ? [...commonParams, true] : [...commonParams],
     });
 
     joinUserData = encodeJoinWeightedPool({ kind: 'Init', amountsIn: tokenAddresses.map(() => initialPoolBalance) });
   } else if (poolName == 'StablePool') {
     const amplificationParameter = bn(50e18);
 
-    pool = await deployPoolFromFactory(vault, 'StablePool', {
+    pool = await deployPoolFromFactory(vault, poolName, {
       from: creator,
       parameters: [tokenAddresses, amplificationParameter, swapFeePercentage],
     });
@@ -107,6 +109,9 @@ export async function deployPool(vault: Contract, tokens: TokenList, poolName: P
     userData: joinUserData,
   });
 
+  // Force test to skip pause window
+  await advanceTime(MONTH * 5);
+
   return poolId;
 }
 
@@ -116,7 +121,9 @@ export async function getWeightedPool(
   size: number,
   offset?: number
 ): Promise<string> {
-  return deployPool(vault, pickTokens(tokens, size, offset), 'WeightedPool');
+  return size === 2
+    ? deployPool(vault, pickTokens(tokens, size, offset), 'WeightedPool2Tokens')
+    : deployPool(vault, pickTokens(tokens, size, offset), 'WeightedPool');
 }
 
 export async function getStablePool(
