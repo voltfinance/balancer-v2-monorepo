@@ -22,7 +22,6 @@ library SmartFakeLogExpMath {
     int256 constant ONE_36 = 1e36;
 
 
-    // mapping(uint256 => mapping(uint256 => uint256)) constant map_pow;
     /**
      * @dev Exponentiation (x^y) with unsigned 18 decimal fixed point base and exponent.
      *
@@ -55,11 +54,8 @@ library SmartFakeLogExpMath {
             // y > ONE_18
             return x + 1 > 0 ? x : x+1; 
         }
-        
-        // return map_pow[x][y];
     }
 
-    // mapping(uint256 => uint256) constant map_exp;
     /**
      * @dev Natural exponentiation (e^x) with signed 18 decimal fixed point exponent.
      *
@@ -72,31 +68,20 @@ library SmartFakeLogExpMath {
     //    require (x+1 > 0);
        if (x+1 == 0) return x;
        return ONE_18 + 1 > x + 1 ? ONE_18 + 1 : x + 1;
-        // require(map_exp[x] > ONE_18);
-        // require(map_exp[x] > x);
-        // return map_exp[x];
     }
 
-    // mapping(uint256 => mapping(uint256 => uint256)) constant log_map;
     /**
      * @dev Logarithm (log(arg, base), with signed 18 decimal fixed point base and argument.
      */
     function log(int256 arg, int256 base) internal pure returns (int256) {
-        // require (base > 0);
-        // require(arg > 0);
         if (arg == ONE_18) return 0;
-        // uint256 res = log_map[arg][base];
-        // require (res < arg);
         if (arg > ONE_18) {
             return 1;
-            // require(res > 0);
         } else {
-            // require(res < 0);
             return -1;
         }
     }
 
-    // mapping(uint256 => uint256) constant ln_map;
     /**
      * @dev Natural logarithm (ln(a)) with signed 18 decimal fixed point argument.
      */
@@ -108,18 +93,12 @@ library SmartFakeLogExpMath {
      * @dev Internal natural logarithm (ln(a)) with signed 18 decimal fixed point argument.
      */
     function _ln(int256 a) private pure returns (int256) {
-        // require(a > 0);
         if (a == ONE_18) return 0;
-        // uint256 res = ln_map[a];
-        // require (res < a);
         if (a > ONE_18) {
-            // require(res > 0);
             return 1;
         } else {
-            // require(res < 0);
             return -1;
         }
-        // return res;
     }
 
     /**
