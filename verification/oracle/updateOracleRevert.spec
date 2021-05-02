@@ -7,7 +7,7 @@ rule updateOracleShouldNotRevert(uint256 lastChangeBlock,
     uint256 balanceToken1) {
     env e;
 
-    require e.msg.value == 0;
+    require e.msg.value == 0;  // else it will revert
     require normalizedWeight1() > 0;
     require normalizedWeight2() > 0;
     require balanceToken0 > 0;
@@ -17,3 +17,6 @@ rule updateOracleShouldNotRevert(uint256 lastChangeBlock,
     bool success = !lastReverted;
     assert success, "updateOracle reverted";
 }
+
+invariant positive_weights() normalizedWeight1() > 0 && normalizedWeight2() > 0
+
