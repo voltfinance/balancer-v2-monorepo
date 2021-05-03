@@ -6,6 +6,9 @@ perl -0777 -i -pe 's/private/internal/g' contracts/vault/PoolRegistry.sol
 perl -0777 -i -pe 's/external/public/g' contracts/vault/UserBalance.sol
 perl -0777 -i -pe 's/external/public/g' contracts/vault/FlashLoans.sol
 perl -0777 -i -pe 's/external/public/g' contracts/vault/PoolBalances.sol
+perl -0777 -i -pe 's/external/public/g' contracts/vault/ProtocolFeesCollector.sol
+perl -0777 -i -pe 's/external/public/g' contracts/vault/interfaces/IVault.sol
+perl -0777 -i -pe 's/external/public/g' contracts/vault/interfaces/IBasePool.sol
 
 # Virtualize
 perl -0777 -i -pe 's/_calculateFlashLoanFee\(uint256 amount\) internal/_calculateFlashLoanFee\(uint256 amount\) virtual internal/g' contracts/vault/Fees.sol
