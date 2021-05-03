@@ -3,4 +3,5 @@ certoraRun verification/oracle/WeightedPool2TokensHarness.sol \
   --solc solc7.6 \
   --settings -t=300,-recursionEntryLimit=6,-ruleSanityChecks,-assumeUnwindCond,-b=3 \
   --cache balancer_oracle_revert \
-  --staging --msg "Oracle pool - updateOracle should not revert, -assumeUnwindCond,-b=3"
+  --staging shelly/forBalancer \
+  --msg "Oracle pool - updateOracle should not revert, Shelly's branch"

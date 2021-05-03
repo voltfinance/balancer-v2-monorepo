@@ -13,7 +13,7 @@ rule updateOracleShouldNotRevert(uint256 lastChangeBlock,
     require balanceToken0 > 0;
     require balanceToken1 > 0;
 
-    updateOracle@withrevert(e, lastChangeBlock, balanceToken0, balanceToken1);
+    Harness_updateOracle@withrevert(e, lastChangeBlock, balanceToken0, balanceToken1);
     bool success = !lastReverted;
     assert success, "updateOracle reverted";
 }
