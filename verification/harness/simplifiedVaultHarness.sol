@@ -144,6 +144,14 @@ contract simplifiedVaultHarness is Vault {
     /**
     * @dev Returns true if `balance`'s total balance is zero. Costs less gas than computing the total.
     */
+    function Harness_twoTokensPoolIsNotZero(bytes32 poolId, IERC20 token) public view returns (bool) {
+        bytes32 currentBalance = _getTwoTokenPoolBalance(poolId, token);
+        return currentBalance.isNotZero();
+    }
+
+    /**
+    * @dev Returns true if `balance`'s total balance is zero. Costs less gas than computing the total.
+    */
     function Harness_twoTokenPoolIsNotZero(bytes32 poolId, IERC20 token) public view returns (bool) {
         bytes32 currentBalance = _getTwoTokenPoolBalance(poolId, token);
         return currentBalance.isNotZero();

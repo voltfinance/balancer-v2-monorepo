@@ -12,7 +12,7 @@ methods {
     Harness_twoTokensPoolIsNotZero(bytes32, address) returns bool envfree
     getPoolId() returns bytes32 envfree => DISPATCHER(true)
 
-    // bad_oracle_param() envfree => DISPATCHER(true)
+    bad_oracle_param() envfree => DISPATCHER(true)
 
     // token functions
     transfer(address, uint256) returns bool envfree => DISPATCHER(true)
@@ -70,4 +70,30 @@ rule oracle_balance_positive_after_join {
     Harness_doubleJoinPool(e, poolId, sender, recipient, ERC20A, ERC20B, maxAmountInA, maxAmountInB, fromInternalBalance);
 
     assert Harness_twoTokensPoolIsNotZero(poolId, ERC20A);
+}
+
+rule oracle_balance_positive_after_positive {
+    bytes32 poolId = oracle_pool.getPoolId();
+    require Harness_twoTokensPoolIsNotZero(poolId, ERC20A);
+
+    env e;
+    calldataarg a;
+    method f;
+    f(e, a);
+
+    assert Harness_twoTokensPoolIsNotZero(poolId, ERC20A);
+}
+
+rule no_bad_oracle_param {
+    require !oracle_pool.bad_oracle_param();
+
+    bytes32 poolId = oracle_pool.getPoolId();
+    require Harness_twoTokensPoolIsNotZero(poolId, ERC20A);
+
+    env e;
+    calldataarg a;
+    method f;
+    f(e, a);
+
+    assert !oracle_pool.bad_oracle_param();
 }

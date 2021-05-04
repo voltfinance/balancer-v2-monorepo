@@ -7,8 +7,6 @@ perl -0777 -i -pe 's/external/public/g' contracts/vault/UserBalance.sol
 perl -0777 -i -pe 's/external/public/g' contracts/vault/FlashLoans.sol
 perl -0777 -i -pe 's/external/public/g' contracts/vault/PoolBalances.sol
 perl -0777 -i -pe 's/external/public/g' contracts/vault/ProtocolFeesCollector.sol
-perl -0777 -i -pe 's/external/public/g' contracts/vault/interfaces/IVault.sol
-perl -0777 -i -pe 's/external/public/g' contracts/vault/interfaces/IBasePool.sol
 
 # Virtualize
 perl -0777 -i -pe 's/_calculateFlashLoanFee\(uint256 amount\) internal/_calculateFlashLoanFee\(uint256 amount\) virtual internal/g' contracts/vault/Fees.sol
@@ -75,3 +73,9 @@ perl -0777 -i -pe 's/emit PoolBalanceChanged\(\s*poolId,\s*sender,\s*tokens.\s*\
 
 # remove event from FlashLoans
 perl -0777 -i -pe 's/emit FlashLoan\(recipient, token, amounts\[i\], receivedFeeAmount\);//g' contracts/vault/FlashLoans.sol
+
+# safeTransfers to transfers
+perl -0777 -i -pe 's/safeT/t/g' contracts/vault/Fees.sol
+perl -0777 -i -pe 's/safeT/t/g' contracts/vault/FlashLoans.sol
+perl -0777 -i -pe 's/safeT/t/g' contracts/vault/UserBalance.sol
+perl -0777 -i -pe 's/safeT/t/g' contracts/vault/AssetManagers.sol

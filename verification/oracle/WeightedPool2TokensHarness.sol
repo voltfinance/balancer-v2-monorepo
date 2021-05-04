@@ -6,7 +6,7 @@ import "../../contracts/pools/weighted/WeightedPool2Tokens.sol";
 contract WeightedPool2TokensHarness is WeightedPool2Tokens {
     constructor(NewPoolParams memory params) WeightedPool2Tokens(params) {} 
 
-    function updateOracle(uint256 lastChangeBlock,
+    function Harness_updateOracle(uint256 lastChangeBlock,
         uint256 balanceToken0,
         uint256 balanceToken1
     ) public {

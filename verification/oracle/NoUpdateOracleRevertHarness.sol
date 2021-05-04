@@ -20,7 +20,8 @@ contract NoUpdateOracleRevertHarness is WeightedPool2TokensHarness {
     ) internal override {
         if (balanceToken0 == 0 || balanceToken1 == 0) {
             bad_oracle_param = true;
+        } else{
+            super._updateOracle(lastChangeBlock, balanceToken0, balanceToken1);
         }
-        super._updateOracle(lastChangeBlock, balanceToken0, balanceToken1);
     }
 }

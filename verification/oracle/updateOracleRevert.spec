@@ -19,4 +19,3 @@ rule updateOracleShouldNotRevert(uint256 lastChangeBlock,
 }
 
 invariant positive_weights() normalizedWeight1() > 0 && normalizedWeight2() > 0
-

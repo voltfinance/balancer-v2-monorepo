@@ -5,6 +5,7 @@ certoraRun verification/oracle/NoUpdateOracleRevertHarness.sol verification/harn
   --link JoinExitPoolHarness:_weth=WETH \
   --verify JoinExitPoolHarness:verification/oracle/NoOracleZeroBalances.spec \
   --solc solc7.6 \
-  --settings -ruleSanityChecks,-assumeUnwindCond,-b=3,-ignoreViewFunctions \
+  --settings -ruleSanityChecks,-assumeUnwindCond,-b=3,-ignoreViewFunctions,-recursionEntryLimit=6,-copyLoopUnroll=3 \
   --cache balancer_oracle_revert \
-  --staging --msg "Oracle pool - updateOracle should not get zero balances, public getCollectedFeeAmounts"
+  --rule oracle_balance_positive_after_join \
+  --staging --msg "rule oracle_balance_positive_after_join, smart fake fixed point"
