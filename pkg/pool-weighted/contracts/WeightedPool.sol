@@ -23,6 +23,32 @@ import "./BaseWeightedPool.sol";
 contract WeightedPool is BaseWeightedPool {
     using FixedPoint for uint256;
 
+    uint256 private constant _MAX_TOKENS = 8;
+
+    uint256 private immutable _totalTokens;
+
+    IERC20 internal immutable _token0;
+    IERC20 internal immutable _token1;
+    IERC20 internal immutable _token2;
+    IERC20 internal immutable _token3;
+    IERC20 internal immutable _token4;
+    IERC20 internal immutable _token5;
+    IERC20 internal immutable _token6;
+    IERC20 internal immutable _token7;
+
+    // All token balances are normalized to behave as if the token had 18 decimals. We assume a token's decimals will
+    // not change throughout its lifetime, and store the corresponding scaling factor for each at construction time.
+    // These factors are always greater than or equal to one: tokens with more than 18 decimals are not supported.
+
+    uint256 internal immutable _scalingFactor0;
+    uint256 internal immutable _scalingFactor1;
+    uint256 internal immutable _scalingFactor2;
+    uint256 internal immutable _scalingFactor3;
+    uint256 internal immutable _scalingFactor4;
+    uint256 internal immutable _scalingFactor5;
+    uint256 internal immutable _scalingFactor6;
+    uint256 internal immutable _scalingFactor7;
+
     // The protocol fees will always be charged using the token associated with the max weight in the pool.
     // Since these Pools will register tokens only once, we can assume this index will be constant.
     uint256 private immutable _maxWeightTokenIndex;
@@ -89,6 +115,28 @@ contract WeightedPool is BaseWeightedPool {
         _normalizedWeight5 = numTokens > 5 ? normalizedWeights[5] : 0;
         _normalizedWeight6 = numTokens > 6 ? normalizedWeights[6] : 0;
         _normalizedWeight7 = numTokens > 7 ? normalizedWeights[7] : 0;
+
+        _totalTokens = numTokens;
+
+        // Immutable variables cannot be initialized inside an if statement, so we must do conditional assignments
+        _token0 = numTokens > 0 ? tokens[0] : IERC20(0);
+        _token1 = numTokens > 1 ? tokens[1] : IERC20(0);
+        _token2 = numTokens > 2 ? tokens[2] : IERC20(0);
+        _token3 = numTokens > 3 ? tokens[3] : IERC20(0);
+        _token4 = numTokens > 4 ? tokens[4] : IERC20(0);
+        _token5 = numTokens > 5 ? tokens[5] : IERC20(0);
+        _token6 = numTokens > 6 ? tokens[6] : IERC20(0);
+        _token7 = numTokens > 7 ? tokens[7] : IERC20(0);
+
+        _scalingFactor0 = numTokens > 0 ? _computeScalingFactor(tokens[0]) : 0;
+        _scalingFactor1 = numTokens > 1 ? _computeScalingFactor(tokens[1]) : 0;
+        _scalingFactor2 = numTokens > 2 ? _computeScalingFactor(tokens[2]) : 0;
+        _scalingFactor3 = numTokens > 3 ? _computeScalingFactor(tokens[3]) : 0;
+        _scalingFactor4 = numTokens > 4 ? _computeScalingFactor(tokens[4]) : 0;
+        _scalingFactor5 = numTokens > 5 ? _computeScalingFactor(tokens[5]) : 0;
+        _scalingFactor6 = numTokens > 6 ? _computeScalingFactor(tokens[6]) : 0;
+        _scalingFactor7 = numTokens > 7 ? _computeScalingFactor(tokens[7]) : 0;
+
     }
 
     function _getNormalizedWeight(IERC20 token) internal view virtual override returns (uint256) {
@@ -133,5 +181,65 @@ contract WeightedPool is BaseWeightedPool {
         returns (uint256[] memory, uint256)
     {
         return (_getNormalizedWeights(), _maxWeightTokenIndex);
+    }
+
+    function _getTokenIndex(IERC20 token) internal view virtual override returns (uint256) {
+        if (token == _token0) { return 0; }
+        else if (token == _token1) { return 1; }
+        else if (token == _token2) { return 2; }
+        else if (token == _token3) { return 3; }
+        else if (token == _token4) { return 4; }
+        else if (token == _token5) { return 5; }
+        else if (token == _token6) { return 6; }
+        else if (token == _token7) { return 7; }
+        else {
+            _revert(Errors.INVALID_TOKEN);
+        }
+    }
+
+    function _getTotalTokens() internal view virtual override returns (uint256) {
+        return _totalTokens;
+    }
+
+    function _getMaxTokens() internal view virtual override returns (uint256) {
+        return _MAX_TOKENS;
+    }
+
+    /**
+     * @dev Returns the scaling factor for one of the Pool's tokens. Reverts if `token` is not a token registered by the
+     * Pool.
+     */
+    function _scalingFactor(IERC20 token) internal view virtual override returns (uint256) {
+        // prettier-ignore
+        if (token == _token0) { return _scalingFactor0; }
+        else if (token == _token1) { return _scalingFactor1; }
+        else if (token == _token2) { return _scalingFactor2; }
+        else if (token == _token3) { return _scalingFactor3; }
+        else if (token == _token4) { return _scalingFactor4; }
+        else if (token == _token5) { return _scalingFactor5; }
+        else if (token == _token6) { return _scalingFactor6; }
+        else if (token == _token7) { return _scalingFactor7; }
+        else {
+            _revert(Errors.INVALID_TOKEN);
+        }
+    }
+
+    function _scalingFactors() internal view virtual override returns (uint256[] memory) {
+        uint256 totalTokens = _getTotalTokens();
+        uint256[] memory scalingFactors = new uint256[](totalTokens);
+
+        // prettier-ignore
+        {
+            if (totalTokens > 0) { scalingFactors[0] = _scalingFactor0; } else { return scalingFactors; }
+            if (totalTokens > 1) { scalingFactors[1] = _scalingFactor1; } else { return scalingFactors; }
+            if (totalTokens > 2) { scalingFactors[2] = _scalingFactor2; } else { return scalingFactors; }
+            if (totalTokens > 3) { scalingFactors[3] = _scalingFactor3; } else { return scalingFactors; }
+            if (totalTokens > 4) { scalingFactors[4] = _scalingFactor4; } else { return scalingFactors; }
+            if (totalTokens > 5) { scalingFactors[5] = _scalingFactor5; } else { return scalingFactors; }
+            if (totalTokens > 6) { scalingFactors[6] = _scalingFactor6; } else { return scalingFactors; }
+            if (totalTokens > 7) { scalingFactors[7] = _scalingFactor7; } else { return scalingFactors; }
+        }
+
+        return scalingFactors;
     }
 }
