@@ -32,6 +32,7 @@ library WordCodec {
     uint256 private constant _MASK_32 = 2**(32) - 1;
     uint256 private constant _MASK_53 = 2**(53) - 1;
     uint256 private constant _MASK_64 = 2**(64) - 1;
+    uint256 private constant _MASK_128 = 2**(128) - 1;
 
     // Largest positive values that can be represented as N bits signed integers.
     int256 private constant _MAX_INT_22 = 2**(21) - 1;
@@ -126,6 +127,21 @@ library WordCodec {
         uint256 offset
     ) internal pure returns (bytes32) {
         bytes32 clearedWord = bytes32(uint256(word) & ~(_MASK_64 << offset));
+        return clearedWord | bytes32(value << offset);
+    }
+
+    /**
+     * @dev Inserts a 128 bit unsigned integer shifted by an offset into a 256 bit word, replacing the old value. Returns
+     * the new word.
+     *
+     * Assumes `value` can be represented using 128 bits.
+     */
+    function insertUint128(
+        bytes32 word,
+        uint256 value,
+        uint256 offset
+    ) internal pure returns (bytes32) {
+        bytes32 clearedWord = bytes32(uint256(word) & ~(_MASK_128 << offset));
         return clearedWord | bytes32(value << offset);
     }
 
@@ -227,6 +243,13 @@ library WordCodec {
      */
     function decodeUint64(bytes32 word, uint256 offset) internal pure returns (uint256) {
         return uint256(word >> offset) & _MASK_64;
+    }
+
+    /**
+     * @dev Decodes and returns a 128 bit unsigned integer shifted by an offset from a 256 bit word.
+     */
+    function decodeUint128(bytes32 word, uint256 offset) internal pure returns (uint256) {
+        return uint256(word >> offset) & _MASK_128;
     }
 
     // Signed
