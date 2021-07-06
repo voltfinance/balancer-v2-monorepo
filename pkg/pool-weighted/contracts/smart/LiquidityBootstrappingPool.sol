@@ -393,7 +393,6 @@ contract LiquidityBootstrappingPool is BaseWeightedPool, ReentrancyGuard {
         // Ensure that the normalized weights sum to ONE
         _require(normalizedSum == FixedPoint.ONE, Errors.NORMALIZED_WEIGHT_INVARIANT);
 
-        // If we are initializing, start/end times are already 0
         newPoolState = newPoolState.insertUint32(startTime, _START_TIME_OFFSET);
         newPoolState = newPoolState.insertUint32(endTime, _END_TIME_OFFSET);
 
