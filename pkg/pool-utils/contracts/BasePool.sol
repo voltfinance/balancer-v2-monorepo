@@ -24,7 +24,6 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "@balancer-labs/v2-vault/contracts/interfaces/IVault.sol";
 import "@balancer-labs/v2-vault/contracts/interfaces/IBasePool.sol";
 
-//import "./TokenScaling.sol";
 import "./BalancerPoolToken.sol";
 import "./BasePoolAuthorization.sol";
 
@@ -33,8 +32,8 @@ import "@balancer-labs/v2-asset-manager-utils/contracts/IAssetManager.sol";
 // solhint-disable max-states-count
 
 /**
- * @dev Reference implementation for the base layer of a Pool contract that manages a single Pool with a set
- * of registered tokens, no Asset Managers, an admin-controlled swap fee percentage, and an emergency pause mechanism.
+ * @dev Reference implementation for the base layer of a Pool contract that manages a single Pool with no
+ * Asset Managers, an admin-controlled swap fee percentage, and an emergency pause mechanism.
  *
  * Note that neither swap fees nor the pause mechanism are used by this contract. They are passed through so that
  * derived contracts can use them via the `_addSwapFeeAmount` and `_subtractSwapFeeAmount` functions, and the
@@ -121,7 +120,7 @@ abstract contract BasePool is IBasePool, BasePoolAuthorization, BalancerPoolToke
 
     function _getTotalTokens() internal view virtual returns (uint256);
 
-    function _getMaxTokens() internal view virtual returns (uint256);
+    function _getMaxTokens() internal pure virtual returns (uint256);
 
     function getSwapFeePercentage() external view returns (uint256) {
         return _swapFeePercentage;

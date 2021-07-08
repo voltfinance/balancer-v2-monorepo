@@ -65,18 +65,4 @@ library WeightCompression {
     function compress64(uint256 value) internal pure returns (uint256) {
         return value.mulUp(type(uint64).max).divUp(FixedPoint.ONE);
     }
-
-    /**
-     * @dev Convert a 128-bit value to full FixedPoint
-     */
-    function uncompress128(uint256 value) internal pure returns (uint256) {
-        return value.mulUp(FixedPoint.ONE).divUp(type(uint128).max);
-    }
-
-    /**
-     * @dev Compress a FixedPoint value to 128 bits
-     */
-    function compress128(uint256 value) internal pure returns (uint256) {
-        return value.mulUp(type(uint128).max).divUp(FixedPoint.ONE);
-    }
 }

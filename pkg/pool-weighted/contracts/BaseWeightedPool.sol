@@ -115,7 +115,7 @@ abstract contract BaseWeightedPool is BaseMinimalSwapInfoPool, WeightedMath {
         SwapRequest memory swapRequest,
         uint256 currentBalanceTokenIn,
         uint256 currentBalanceTokenOut
-    ) internal view virtual override whenNotPaused returns (uint256) {
+    ) internal virtual override whenNotPaused returns (uint256) {
         // Swaps are disabled while the contract is paused.
 
         return
@@ -132,7 +132,7 @@ abstract contract BaseWeightedPool is BaseMinimalSwapInfoPool, WeightedMath {
         SwapRequest memory swapRequest,
         uint256 currentBalanceTokenIn,
         uint256 currentBalanceTokenOut
-    ) internal view virtual override whenNotPaused returns (uint256) {
+    ) internal virtual override whenNotPaused returns (uint256) {
         // Swaps are disabled while the contract is paused.
 
         return
