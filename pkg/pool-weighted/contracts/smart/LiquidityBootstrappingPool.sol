@@ -18,13 +18,13 @@ pragma experimental ABIEncoderV2;
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/helpers/WordCodec.sol";
 
-import "../FixedTokenWeightedPool.sol";
+import "../BaseWeightedPool.sol";
 import "./WeightCompression.sol";
 
 /**
  * @dev Weighted Pool with mutable weights, designed to support V2 Liquidity Bootstrapping
  */
-contract LiquidityBootstrappingPool is FixedTokenWeightedPool, ReentrancyGuard {
+contract LiquidityBootstrappingPool is BaseWeightedPool, ReentrancyGuard {
     // The Pause Window and Buffer Period are timestamp-based: they should not be relied upon for sub-minute accuracy.
     // solhint-disable not-rely-on-time
 
@@ -56,6 +56,22 @@ contract LiquidityBootstrappingPool is FixedTokenWeightedPool, ReentrancyGuard {
     uint256 private constant _START_TIME_OFFSET = 192;
     uint256 private constant _END_TIME_OFFSET = 224;
 
+    uint256 internal immutable _totalTokens;
+
+    IERC20 internal immutable _token0;
+    IERC20 internal immutable _token1;
+    IERC20 internal immutable _token2;
+    IERC20 internal immutable _token3;
+
+    // All token balances are normalized to behave as if the token had 18 decimals. We assume a token's decimals will
+    // not change throughout its lifetime, and store the corresponding scaling factor for each at construction time.
+    // These factors are always greater than or equal to one: tokens with more than 18 decimals are not supported.
+
+    uint256 internal immutable _scalingFactor0;
+    uint256 internal immutable _scalingFactor1;
+    uint256 internal immutable _scalingFactor2;
+    uint256 internal immutable _scalingFactor3;
+
     // Event declarations
 
     event SwapEnabledSet(bool swapEnabled);
@@ -78,7 +94,7 @@ contract LiquidityBootstrappingPool is FixedTokenWeightedPool, ReentrancyGuard {
         address owner,
         bool swapEnabledOnStart
     )
-        FixedTokenWeightedPool(
+        BaseWeightedPool(
             vault,
             name,
             symbol,
@@ -92,6 +108,19 @@ contract LiquidityBootstrappingPool is FixedTokenWeightedPool, ReentrancyGuard {
     {
         uint256 totalTokens = tokens.length;
         InputHelpers.ensureInputLengthMatch(totalTokens, normalizedWeights.length);
+
+        _totalTokens = totalTokens;
+
+        // Immutable variables cannot be initialized inside an if statement, so we must do conditional assignments
+        _token0 = totalTokens > 0 ? tokens[0] : IERC20(0);
+        _token1 = totalTokens > 1 ? tokens[1] : IERC20(0);
+        _token2 = totalTokens > 2 ? tokens[2] : IERC20(0);
+        _token3 = totalTokens > 3 ? tokens[3] : IERC20(0);
+
+        _scalingFactor0 = totalTokens > 0 ? _computeScalingFactor(tokens[0]) : 0;
+        _scalingFactor1 = totalTokens > 1 ? _computeScalingFactor(tokens[1]) : 0;
+        _scalingFactor2 = totalTokens > 2 ? _computeScalingFactor(tokens[2]) : 0;
+        _scalingFactor3 = totalTokens > 3 ? _computeScalingFactor(tokens[3]) : 0;
 
         uint256 currentTime = block.timestamp;
 
@@ -397,5 +426,35 @@ contract LiquidityBootstrappingPool is FixedTokenWeightedPool, ReentrancyGuard {
 
     function _getMaxTokens() internal pure override returns (uint256) {
         return _MAX_LBP_TOKENS;
+    }
+
+    function _getTotalTokens() internal view virtual override returns (uint256) {
+        return _totalTokens;
+    }
+
+    function _scalingFactor(IERC20 token) internal view virtual override returns (uint256) {
+        // prettier-ignore
+        if (token == _token0) { return _scalingFactor0; }
+        else if (token == _token1) { return _scalingFactor1; }
+        else if (token == _token2) { return _scalingFactor2; }
+        else if (token == _token3) { return _scalingFactor3; }
+        else {
+            _revert(Errors.INVALID_TOKEN);
+        }
+    }
+
+    function _scalingFactors() internal view virtual override returns (uint256[] memory) {
+        uint256 totalTokens = _getTotalTokens();
+        uint256[] memory scalingFactors = new uint256[](totalTokens);
+
+        // prettier-ignore
+        {
+            if (totalTokens > 0) { scalingFactors[0] = _scalingFactor0; } else { return scalingFactors; }
+            if (totalTokens > 1) { scalingFactors[1] = _scalingFactor1; } else { return scalingFactors; }
+            if (totalTokens > 2) { scalingFactors[2] = _scalingFactor2; } else { return scalingFactors; }
+            if (totalTokens > 3) { scalingFactors[3] = _scalingFactor3; } else { return scalingFactors; }
+        }
+
+        return scalingFactors;
     }
 }

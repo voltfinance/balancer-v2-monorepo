@@ -125,7 +125,7 @@ abstract contract BasePool is IBasePool, BasePoolAuthorization, BalancerPoolToke
         return _poolId;
     }
 
-    function _getTokenIndex(IERC20 token) internal view virtual returns (uint256);
+    //function _getTokenIndex(IERC20 token) internal view virtual returns (uint256);
 
     function _getTotalTokens() internal view virtual returns (uint256);
 
