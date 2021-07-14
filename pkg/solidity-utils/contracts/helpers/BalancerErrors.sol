@@ -143,9 +143,10 @@ library Errors {
     uint256 internal constant GRADUAL_UPDATE_TIME_TRAVEL = 326;
     uint256 internal constant SWAPS_DISABLED = 327;
     uint256 internal constant CALLER_IS_NOT_LBP_OWNER = 328;
-    uint256 internal constant INVALID_CIRCUIT_BREAKER_RATIO = 329;
-    uint256 internal constant CIRCUIT_BREAKER_TRIPPED = 330;
-    
+    uint256 internal constant INVALID_CIRCUIT_BREAKER_RATIOS = 329;
+    uint256 internal constant MIN_CIRCUIT_BREAKER_RATIO = 330;
+    uint256 internal constant MAX_CIRCUIT_BREAKER_RATIO = 331;
+
     // Lib
     uint256 internal constant REENTRANCY = 400;
     uint256 internal constant SENDER_NOT_ALLOWED = 401;
