@@ -17,6 +17,7 @@ pragma experimental ABIEncoderV2;
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/helpers/WordCodec.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/TimelockController.sol";
 
 import "../BaseWeightedPool.sol";
 import "./WeightCompression.sol";
