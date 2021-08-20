@@ -177,6 +177,13 @@ library Errors {
     uint256 internal constant CODE_DEPLOYMENT_FAILED = 428;
     uint256 internal constant CALL_TO_NON_CONTRACT = 429;
     uint256 internal constant LOW_LEVEL_CALL_FAILED = 430;
+    uint256 internal constant TIMELOCK_OPERATION_ALREADY_SCHEDULED = 431;
+    uint256 internal constant TIMELOCK_OPERATION_INSUFFICIENT_DELAY = 432;
+    uint256 internal constant TIMELOCK_OPERATION_CANNOT_BE_CANCELED = 433;
+    uint256 internal constant TIMELOCK_MISSING_DEPENDENCY = 434;
+    uint256 internal constant TIMELOCK_OPERATION_NOT_READY = 435;
+    uint256 internal constant TIMELOCK_UNDERLYING_TRANSACTION_REVERTED = 436;
+    uint256 internal constant CALLER_MUST_BE_TIMELOCK = 437;
 
     // Vault
     uint256 internal constant INVALID_POOL_ID = 500;

@@ -35,6 +35,9 @@ contract InvestmentPool is BaseWeightedPool, ReentrancyGuard {
 
     // State variables
 
+    uint256 private constant _TIMELOCK_DELAY = 3 days;
+    TimelockController private immutable _timelockController;
+
     // Cached here to avoid calling getTokens on the pool, which would be very gas-intensive for large numbers of tokens
     // Can only change if tokens are added/removed
     uint256 private _tokenCountCache;
@@ -94,6 +97,18 @@ contract InvestmentPool is BaseWeightedPool, ReentrancyGuard {
         // I'm time-traveling a bit here - storing the weights in a form where they can be changed
         uint256 currentTime = block.timestamp;
         _startGradualWeightChange(currentTime, currentTime, normalizedWeights, normalizedWeights, tokens);
+
+        // Deploy timelock
+        address[] memory proposers = new address[](1);
+        address[] memory executors = new address[](1);
+        proposers[0] = owner;
+        executors[0] = owner;
+
+        _timelockController = new TimelockController(_TIMELOCK_DELAY, proposers, executors);
+    }
+
+    function getTimelockController() external view returns (TimelockController) {
+        return _timelockController;
     }
 
     function _getMaxTokens() internal pure virtual override returns (uint256) {
