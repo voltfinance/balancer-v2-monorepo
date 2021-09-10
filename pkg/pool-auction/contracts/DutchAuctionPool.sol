@@ -179,8 +179,8 @@ abstract contract DutchAuctionPool is
     function getTokenPrice() public view returns (uint256) {
         if (_finalTicketPrice != 0) return _finalTicketPrice;
         (, uint256[] memory balances, ) = getVault().getPoolTokens(getPoolId());
+        _upscaleArray(balances);
 
-        // TODO: properly scale this for decimals
         return balances[_paymentTokenIndex].mulDown(balances[_ticketTokenIndex]);
     }
 
@@ -249,7 +249,6 @@ abstract contract DutchAuctionPool is
         if (swapRequest.kind == IVault.SwapKind.GIVEN_IN) {
             swapRequest.amount = _upscale(swapRequest.amount, scalingFactorTokenIn);
 
-            // TODO: properly scale finalTicketPrice for token decimals
             uint256 amountOut = swapRequest.amount.divDown(finalTicketPrice);
 
             // amountOut tokens are exiting the Pool, so we round down.
@@ -257,7 +256,6 @@ abstract contract DutchAuctionPool is
         } else {
             swapRequest.amount = _upscale(swapRequest.amount, scalingFactorTokenOut);
 
-            // TODO: properly scale finalTicketPrice for token decimals
             uint256 amountIn = swapRequest.amount.mulDown(finalTicketPrice);
 
             // amountIn tokens are entering the Pool, so we round up.
@@ -390,14 +388,15 @@ abstract contract DutchAuctionPool is
         auctionData = auctionData.setEndTime(endTime);
 
         // We can calculate the start price from the implied price from if all commitmentTokens are bought
-        uint256 startPrice = amountsIn[_commitmentTokenIndex].divUp(amountsIn[_ticketTokenIndex]);
+        uint256 scaledCommitmentBalance = _upscale(amountsIn[_commitmentTokenIndex], _commitmentTokenIndex);
+        uint256 scaledTicketBalance = _upscale(amountsIn[_ticketTokenIndex], _ticketTokenIndex);
+        uint256 startPrice = scaledCommitmentBalance.divUp(scaledTicketBalance);
         auctionData = auctionData.setStartPrice(startPrice);
 
         uint256 minimumPrice = 0;
         require(minimumPrice <= startPrice, "Minimum price must be less than or equal to start price");
         auctionData = auctionData.setMinimumPrice(minimumPrice);
         _miscData = auctionData;
-
 
         // There are no due protocol fee amounts during initialization
         dueProtocolFeeAmounts = new uint256[](3);
