@@ -99,6 +99,9 @@ describe('StakingRelayer', function () {
           await relayer.connect(sender).joinAndStake(basePoolId, recipient.address, joinRequest)
         ).wait();
 
+        const gasUsed = receipt.gasUsed
+        console.log(gasUsed.toNumber())
+
         expectEvent.inIndirectReceipt(receipt, vault.instance.interface, 'PoolBalanceChanged', {
           poolId: basePoolId,
           liquidityProvider: sender.address,

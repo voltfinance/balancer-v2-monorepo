@@ -391,7 +391,7 @@ export default class StablePool {
     return (await this._executeQuery(params, fn)) as JoinQueryResult;
   }
 
-  async join(params: JoinExitStablePool): Promise<JoinResult> {
+  async join(params: JoinExitStablePool): Promise<any> {
     const currentBalances = params.currentBalances || (await this.getBalances());
     const to = params.recipient ? TypesConverter.toAddress(params.recipient) : params.from?.address ?? ZERO_ADDRESS;
 
@@ -409,7 +409,7 @@ export default class StablePool {
 
     const receipt = await (await tx).wait();
     const { deltas, protocolFees } = expectEvent.inReceipt(receipt, 'PoolBalanceChanged').args;
-    return { amountsIn: deltas, dueProtocolFeeAmounts: protocolFees };
+    return { amountsIn: deltas, dueProtocolFeeAmounts: protocolFees, receipt };
   }
 
   async queryExit(params: JoinExitStablePool): Promise<ExitQueryResult> {

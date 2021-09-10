@@ -273,7 +273,9 @@ describe('StablePool', function () {
             const previousBptBalance = await pool.balanceOf(recipient);
             const minimumBptOut = pct(expectedBptOut, 0.99);
 
-            const result = await pool.joinGivenIn({ amountsIn, minimumBptOut, recipient });
+            const result: any = await pool.joinGivenIn({ amountsIn, minimumBptOut, recipient });
+
+            console.log(result.receipt.gasUsed.toNumber())
 
             // Amounts in should be the same as initial ones
             expect(result.amountsIn).to.deep.equal(amountsIn);
