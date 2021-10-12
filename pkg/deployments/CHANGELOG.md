@@ -1,5 +1,12 @@
 # Changelog
 
+## (unreleased)
+
+### New Deployments
+
+- Deployed `LinearPoolFactory`
+- Deployed `StablePhantomPoolFactory`
+
 ## 2.3.0 (2021-09-24)
 
 ### New Deployments
