@@ -20,13 +20,13 @@ describe('LinearPoolFactory', function () {
 
   const task = Task.forTest('???-linear-phantom-pool', getForkedNetwork(hre));
 
-  const DAI = '0x6b175474e89094c44da98b954eedeac495271d0f';
-  const USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
-  const USDT = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+  const DAI = '0xFf795577d9AC8bD7D90Ee22b6C1703490b6512FD';
+  const USDC = '0xe22da380ee6B445bb8273C81944ADEB6E8450422';
+  const USDT = '0x13512979ADE267AB5100878E2e0f485B568328a4';
 
-  const waDAI = '0x6b175474e89094c44da98b954eedeac495271d0f';
-  const waUSDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
-  const waUSDT = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+  const waDAI = '0x4811A7Bb9061A46753486E5e84B3CD3D668fB596';
+  const waUSDC = '0x0FbdDC06a4720408a2f5Eb78e62Bc31AC6E2A3c4';
+  const waUSDT = '0xE8191aACfcdb32260Cda25830Dc6C9342142f310';
 
   const tokens = [DAI, USDC, USDT];
   const cacheDurations = [0, 0];
