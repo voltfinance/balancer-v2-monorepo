@@ -11,8 +11,8 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
 
   const linearPoolFactory = await task.deployAndVerify('LinearPoolFactory', [input.Vault], from, force);
   await linearPoolFactory.create(
-    'LINEARADAI',
-    'LINEARADAI',
+    'LINEARA-DAI',
+    'LINEARA-DAI',
     input.daiToken,
     input.waDAI,
     input.linearPool.lowerTarget,
