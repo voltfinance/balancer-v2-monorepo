@@ -1,7 +1,7 @@
 import Task from '../../src/task';
 import { BigNumber } from 'ethers';
 import { fp } from '@balancer-labs/v2-helpers/src/numbers';
-import { StringifyOptions } from 'querystring';
+import { ZERO_ADDRESS } from '@balancer-labs/v2-helpers/src/constants';
 
 const Vault = new Task('20210418-vault');
 
@@ -44,5 +44,5 @@ export default {
     amplificationParameter: fp(400000),
     swapFeePercentage: fp(0.01),
   },
-  owner: '0xac38B8E606A4833e58c44678661Fbc456c18d21f',
+  owner: ZERO_ADDRESS,
 };

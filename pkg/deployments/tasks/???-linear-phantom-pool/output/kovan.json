@@ -1,6 +1,6 @@
 {
-  "StaticATokenRateProvider": "0x1eDCeB111D44E0fc76113154d198DFc49B0F2CAD",
-  "timestamp": 1634236853330,
-  "LinearPoolFactory": "0x29Cff5FD526d87CE3171a8A74FAD42746b787A62",
-  "StablePhantomPoolFactory": "0xf7642B4cb87B6e5456cE105f30E8c39366619b55"
+  "StaticATokenRateProvider": "0x15136bC189874E41c84a094376FefEeCB9d14844",
+  "timestamp": 1634242577346,
+  "LinearPoolFactory": "0x773C12Adeb60740a69e86c481b9C172FE5CF117A",
+  "StablePhantomPoolFactory": "0x9EBAC658F60E5355D9E343F67eC6f7A9540ffE3a"
 }

@@ -1,8 +1,12 @@
+import * as expectEvent from '@balancer-labs/v2-helpers/src/test/expectEvent';
+
 import Task from '../../src/task';
 import { TaskRunOptions } from '../../src/types';
 import { LinearPoolPhantomStableDeployment } from './input';
 
 export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise<void> => {
+  let receipt, event, name;
+
   const input = task.input() as LinearPoolPhantomStableDeployment;
 
   const waDAIProvider = await task.deployAndVerify('StaticATokenRateProvider', [input.waDAI], from, force);
@@ -10,9 +14,10 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
   const waUSDTProvider = await task.deployAndVerify('StaticATokenRateProvider', [input.waUSDT], from, force);
 
   const linearPoolFactory = await task.deployAndVerify('LinearPoolFactory', [input.Vault], from, force);
-  await linearPoolFactory.create(
-    'LINEARA-DAI',
-    'LINEARA-DAI',
+  name = 'LINEAR-ADAI';
+  receipt = await linearPoolFactory.create(
+    name,
+    name,
     input.daiToken,
     input.waDAI,
     input.linearPool.lowerTarget,
@@ -22,11 +27,14 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     input.linearPool.wrappedTokenRateCacheDuration,
     input.owner
   );
-  const linearPoolDai = ''; ///???
+  event = expectEvent.inReceipt(await receipt.wait(), 'PoolCreated');
+  const linearPoolDai = event.args.pool;
+  console.log(`${name} deployed at ${linearPoolDai}`);
 
-  await linearPoolFactory.create(
-    'LINEAR-AUSDC',
-    'LINEAR-AUSDC',
+  name = 'LINEAR-AUSDC';
+  receipt = await linearPoolFactory.create(
+    name,
+    name,
     input.usdcToken,
     input.waUSDC,
     input.linearPool.lowerTarget,
@@ -36,11 +44,14 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     input.linearPool.wrappedTokenRateCacheDuration,
     input.owner
   );
-  const linearPoolUsdc = ''; ///???
+  event = expectEvent.inReceipt(await receipt.wait(), 'PoolCreated');
+  const linearPoolUsdc = event.args.pool;
+  console.log(`${name} deployed at ${linearPoolUsdc}`);
 
-  await linearPoolFactory.create(
-    'LINEAR-AUSDT',
-    'LINEAR-AUSDT',
+  name = 'LINEAR-AUSDT';
+  receipt = await linearPoolFactory.create(
+    name,
+    name,
     input.usdtToken,
     input.waUSDT,
     input.linearPool.lowerTarget,
@@ -50,12 +61,15 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     input.linearPool.wrappedTokenRateCacheDuration,
     input.owner
   );
-  const linearPoolUsdt = ''; ///???
+  event = expectEvent.inReceipt(await receipt.wait(), 'PoolCreated');
+  const linearPoolUsdt = event.args.pool;
+  console.log(`${name} deployed at ${linearPoolUsdt}`);
 
   const stablePhantomPoolFactory = await task.deployAndVerify('StablePhantomPoolFactory', [input.Vault], from, force);
-  await stablePhantomPoolFactory.create(
-    'STABAL3',
-    'STABAL3',
+  name = 'STABAL3';
+  receipt = await stablePhantomPoolFactory.create(
+    name,
+    name,
     [linearPoolDai, linearPoolUsdc, linearPoolUsdt],
     input.stablePhantomPool.amplificationParameter,
     [linearPoolDai, linearPoolUsdc, linearPoolUsdt],
@@ -63,4 +77,6 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     input.stablePhantomPool.swapFeePercentage,
     input.owner
   );
+  event = expectEvent.inReceipt(await receipt.wait(), 'PoolCreated');
+  console.log(`${name} deployed at ${event.args.pool}`);
 };
