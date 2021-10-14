@@ -5,8 +5,6 @@ import { LinearPoolPhantomStableDeployment } from './input';
 export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise<void> => {
   const input = task.input() as LinearPoolPhantomStableDeployment;
 
-  const owner = '0xac38B8E606A4833e58c44678661Fbc456c18d21f';
-
   const waDAIProvider = await task.deployAndVerify('StaticATokenRateProvider', [input.waDAI], from, force);
   const waUSDCProvider = await task.deployAndVerify('StaticATokenRateProvider', [input.waUSDC], from, force);
   const waUSDTProvider = await task.deployAndVerify('StaticATokenRateProvider', [input.waUSDT], from, force);
@@ -22,7 +20,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     input.linearPool.swapFeePercentage,
     waDAIProvider.address,
     input.linearPool.wrappedTokenRateCacheDuration,
-    owner
+    input.owner
   );
   const linearPoolDai = ''; ///???
 
@@ -36,7 +34,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     input.linearPool.swapFeePercentage,
     waUSDCProvider.address,
     input.linearPool.wrappedTokenRateCacheDuration,
-    owner
+    input.owner
   );
   const linearPoolUsdc = ''; ///???
 
@@ -50,7 +48,7 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     input.linearPool.swapFeePercentage,
     waUSDTProvider.address,
     input.linearPool.wrappedTokenRateCacheDuration,
-    owner
+    input.owner
   );
   const linearPoolUsdt = ''; ///???
 
@@ -63,6 +61,6 @@ export default async (task: Task, { force, from }: TaskRunOptions = {}): Promise
     [linearPoolDai, linearPoolUsdc, linearPoolUsdt],
     [0, 0, 0],
     input.stablePhantomPool.swapFeePercentage,
-    owner
+    input.owner
   );
 };
