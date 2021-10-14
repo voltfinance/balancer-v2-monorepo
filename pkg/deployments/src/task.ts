@@ -96,11 +96,11 @@ export default class Task {
     if (force || !output[name]) {
       const instance = await this.deploy(name, args, from, libs);
       this.save({ [name]: instance });
-      await this.verify(name, instance.address, args, libs);
+      //await this.verify(name, instance.address, args, libs);
       return instance;
     } else {
       logger.info(`${name} already deployed at ${output[name]}`);
-      await this.verify(name, output[name], args, libs);
+      //await this.verify(name, output[name], args, libs);
       return this.instanceAt(name, output[name]);
     }
   }
