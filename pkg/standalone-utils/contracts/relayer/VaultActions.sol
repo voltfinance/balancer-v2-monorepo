@@ -17,7 +17,10 @@ pragma experimental ABIEncoderV2;
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/IERC20Permit.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/IERC20PermitDAI.sol";
+import "@balancer-labs/v2-pool-stable/contracts/StablePoolUserDataHelpers.sol";
+import "@balancer-labs/v2-pool-weighted/contracts/WeightedPoolUserDataHelpers.sol";
 import "@balancer-labs/v2-vault/contracts/interfaces/IVault.sol";
+
 import "../interfaces/IBaseRelayerLibrary.sol";
 
 /**
@@ -30,6 +33,8 @@ import "../interfaces/IBaseRelayerLibrary.sol";
  * All functions must be payable so that it can be called as part of a multicall involving ETH
  */
 abstract contract VaultActions is IBaseRelayerLibrary {
+    enum PoolType { WEIGHTED, STABLE }
+
     function swap(
         IVault.SingleSwap calldata singleSwap,
         IVault.FundManagement calldata funds,
@@ -65,10 +70,13 @@ abstract contract VaultActions is IBaseRelayerLibrary {
         bytes32 poolId,
         address sender,
         address recipient,
-        IVault.JoinPoolRequest calldata request,
-        uint256 value
+        IVault.JoinPoolRequest memory request,
+        uint256 value,
+        PoolType type
     ) external payable {
         require(sender == msg.sender, "Incorrect sender");
+
+        _replaceJoinUserDataAmounts(request, type);
         getVault().joinPool{ value: value }(poolId, sender, recipient, request);
     }
 
@@ -80,5 +88,47 @@ abstract contract VaultActions is IBaseRelayerLibrary {
     ) external payable {
         require(sender == msg.sender, "Incorrect sender");
         getVault().exitPool(poolId, sender, recipient, request);
+    }
+
+    function _replaceJoinUserDataAmounts(IVault.JoinPoolRequest memory request, PoolType, type) private {
+        if (type == PoolType.WEIGHTED) {
+            BaseWeightedPool.JoinKind kind = WeightedPoolUserDataHelpers.joinKind(request.userData);
+
+            // Out of all Weighted Pool join kinds, only EXACT_TOKENS_IN_FOR_BPT_OUT is 'given in', that is, has exact
+            // amounts of tokens in, so this is the only one we care about when it comes to doing amount replacements.
+            // Technically, the INIT join kind also has exact amounts in, but we ignore that one.
+            if (kind == BaseWeightedPool.JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT) {
+                (uint256[] memory amountsIn, uint256 minBPTAmountOut) = request.userData.exactTokensInForBptOut();
+                _replaceAmounts(amountsIn);
+                request.userData = abi.encode(BaseWeightedPool.JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT, amountsIn, minBPTAmountOut);
+            }
+        } else if (type == PoolType.STABLE) {
+            StablePool.JoinKind kind = StablePoolUserDataHelpers.joinKind(request.userData);
+
+            // Out of all Stable Pool join kinds, only EXACT_TOKENS_IN_FOR_BPT_OUT is 'given in', that is, has exact
+            // amounts of tokens in, so this is the only one we care about when it comes to doing amount replacements.
+            // Technically, the INIT join kind also has exact amounts in, but we ignore that one.
+            if (kind == StablePool.JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT) {
+                (uint256[] memory amountsIn, uint256 minBPTAmountOut) = request.userData.exactTokensInForBptOut();
+                _replaceAmounts(amountsIn);
+                request.userData = abi.encode(JoinKind.EXACT_TOKENS_IN_FOR_BPT_OUT, amountsIn, minBPTAmountOut);
+            }
+        } else {
+            // revert unhandled pool type
+        }
+    }
+
+    function _replaceAmounts(uint256[] memory amounts) private {
+        for (uint256 i = 0; i < amounts.length; ++i) {
+            amounts[i] = _replace(amounts[i]);
+        }
+    }
+
+    function _replace(uint256 amount) private returns (uint256) {
+        if ((amount & 0xffff0000000000000000000000000000) == 0xba100000000000000000000000000000) {
+            return amount & 0x0000ffffffffffffffffffffffffffff; // sload and clear this slot
+        } else {
+            return amount;
+        }
     }
 }
