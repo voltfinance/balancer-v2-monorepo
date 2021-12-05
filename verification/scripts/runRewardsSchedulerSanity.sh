@@ -1,5 +1,5 @@
-certoraRun pkg/distributors/contracts/RewardsScheduler.sol \
-  --verify RewardsScheduler:verification/sanity.spec \
+certoraRun verification/munged/distributors/contracts/RewardsScheduler.sol \
+  --verify RewardsScheduler:verification/specs/sanity.spec \
   --solc solc7.6 \
   --settings -t=300 \
   --staging \

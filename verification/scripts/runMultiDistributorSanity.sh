@@ -1,5 +1,5 @@
-certoraRun pkg/distributors/contracts/MultiDistributor.sol \
-  --verify MultiDistributor:verification/sanity.spec \
+certoraRun verification/munged/distributors/contracts/MultiDistributor.sol \
+  --verify MultiDistributor:verification/specs/sanity.spec \
   --solc solc7.6 \
   --settings -t=300 \
   --staging \
