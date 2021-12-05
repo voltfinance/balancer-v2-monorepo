@@ -1,4 +1,5 @@
 pragma solidity ^0.7.0;
+pragma experimental ABIEncoderV2;
 
 import "../munged/distributors/contracts/MultiDistributor.sol";
 
@@ -9,7 +10,7 @@ contract MultiDistributorHarness is MultiDistributor {
     }
 
     function getGlobalTokensPerStake(bytes32 distributionId) public view returns (uint256){
-        return _distributions[distributionIds].globalTokensPerStake;
+        return _distributions[distributionId].globalTokensPerStake;
     }
 
     function getUserTokensPerStake(bytes32 distributionId, IERC20 stakingToken, address sender) public view returns (uint256){
