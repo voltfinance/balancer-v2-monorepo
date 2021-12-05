@@ -50,8 +50,8 @@ definition distActive(bytes32 distId, env e) returns bool =
         getDuration(distId) != 0 &&
         (getPeriodFinish(distId) != 0 && getPeriodFinish(distId) >= e.block.timestamp) &&
         getPaymentRate(distId) != 0 && 
-        getLastUpdateTime(distId) != 0;
-        //(to_int256(getGlobalTokensPerStake(distId) == 0 && getTotalSupply(distId) == 0) xor to_int256(getGlobalTokensPerStake(distId) != 0 && getTotalSupply(distId) != 0));
+        getLastUpdateTime(distId) != 0 && 
+        (getTotalSupply(distId) == 0 ? getGlobalTokensPerStake(distId) == 0 : getGlobalTokensPerStake(distId) != 0);
 
 // Dist Finished, not active - 4 non-zero parameters from distCreated + 4 more.
 // payment rate is assumed to be non-zero once dist if funded. that means that the funder of the dist always make sure that amount > duration.
@@ -63,6 +63,7 @@ definition distInactive(bytes32 distId, env e) returns bool =
         (getPeriodFinish(distId) != 0 && getPeriodFinish(distId) < e.block.timestamp) &&
         getPaymentRate(distId) != 0 && 
         getLastUpdateTime(distId) == getPeriodFinish(distId); //&& 
+        // this is not entierly corret. we should only care for token staked within the active period. This line is commented as globalTPS probably isn't important in this state
         // (to_uint((getGlobalTokensPerStake(distId) == 0 && getTotalSupply(distId) == 0)) xor to_uint((getGlobalTokensPerStake(distId) != 0 && getTotalSupply(distId) != 0)));
 
 
