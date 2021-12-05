@@ -1,4 +1,4 @@
-certoraRun verification/munged/distributors/contracts/MultiDistributor.sol \
+certoraRun verification/harnesses/MultiDistributorHarness.sol \
   --verify MultiDistributor:verification/specs/sanity.spec \
   --solc solc7.6 \
   --settings -t=300 \
