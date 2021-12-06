@@ -78,6 +78,27 @@ definition distFinished(bytes32 distId, env e) returns bool =
         // this is not entierly corret. we should only care for token staked within the active period. This line is commented as globalTPS probably isn't important in this state
         // (getTotalSupply(distId) == 0 ? getGlobalTokensPerStake(distId) == 0 : getGlobalTokensPerStake(distId) != 0);
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////    Helpers    ////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+function helperFunctions(method f, env e, address stakingToken, address sender, bytes32 distributionId, bytes32[] distributionIds) {
+        uint256 amount; address recipient;
+
+        if (f.selector == subscribeDistributions(bytes32[]).selector) {
+                subscribeDistributions(e, distributionIds);
+        } else if (f.selector == unsubscribeDistributions(bytes32[]).selector) {
+        	unsubscribeDistributions(e, distributionIds);
+        } else if (f.selector == stake(address, uint256, address, address).selector) {
+        	stake(e, stakingToken, amount, sender, recipient);
+        } else {
+                unstake(e, stakingToken, amount, sender, recipient);
+        } 
+}
+
+
+// dist.duration == 0 => distNotCreated
+// duration != 0 => 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Invariants    /////////////////////////////////////
@@ -152,3 +173,54 @@ rule conditionsDistNew(bytes32 distId){
 /////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////    Rules    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
+
+rule changesCheckOfUserTokenPerStake(method f) filtered { f -> f.selector == subscribeDistributions(bytes32[]).selector 
+                                                                && f.selector == unsubscribeDistributions(bytes32[]).selector
+                                                                && f.selector == stake(address, uint256, address, address).selector
+                                                                && f.selector == unstake(address, uint256, address, address).selector}{
+        env e;
+        calldataarg args;
+
+        bytes32 distributionId;
+
+        bytes32[] distributionIds = [distributionId]; 
+
+        address stakingToken; address sender;
+
+        uint256 balanceBefore = getUserBalance(stakingToken, sender);
+        uint256 utpsBefore = getUserTokensPerStake(distributionId, stakingToken, sender);
+
+        helperFunctions(f, e, stakingToken, sender, distributionId, distributionIds);
+
+        uint256 balanceAfter = getUserBalance(stakingToken, sender);
+        uint256 utpsAfter = getUserTokensPerStake(distributionId, stakingToken, sender);
+
+        assert utpsBefore < utpsAfter;
+}
+
+rule gtpsMonotonicity(bytes32 distributionId, method f){
+        uint256 gtpsBefore = getGlobalTokensPerStake(distributionId);
+
+        env e;
+        calldataarg args;
+        f(e, args);
+
+        uint256 gtpsAfter = getGlobalTokensPerStake(distributionId);
+
+        assert gtpsBefore <= gtpsAfter, "gtps was decreased";
+}
+
+rule utpsMonotonicity(bytes32 distributionId, method f){
+        address stakingToken; 
+        address sender;
+
+        uint256 utpsBefore = getUserTokensPerStake(distributionId, stakingToken, sender);
+
+        env e;
+        calldataarg args;
+        f(e, args);
+
+        uint256 utpsAfter = getUserTokensPerStake(distributionId, stakingToken, sender);
+
+        assert utpsBefore <= utpsAfter, "utps was decreased";
+}

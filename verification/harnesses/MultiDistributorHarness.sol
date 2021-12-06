@@ -55,8 +55,4 @@ contract MultiDistributorHarness is MultiDistributor {
         return _userStakings[stakingToken][sender].balance;
     }
 
-    function isSubscribed(bytes32 distributionId, IERC20 stakingToken, address user, bytes32[] memory distributionIds) public view returns (bool){
-        return _userStakings[stakingToken][user].subscribedDistributions.contains(distributionId);
-    }
-    
 }
