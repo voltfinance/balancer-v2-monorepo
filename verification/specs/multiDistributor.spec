@@ -12,6 +12,14 @@ methods {
     
     // getters for user staking
     getUserTokensPerStake(bytes32, address, address) returns uint256 envfree
+    getUserBalance(address, address) returns uint256 envfree
+
+    isSubscribed(bytes32, address, address, bytes32[]) returns bool envfree
+
+    subscribeDistributions(bytes32[])
+    unsubscribeDistributions(bytes32[])
+    stake(address, uint256, address, address)
+    unstake(address, uint256, address, address)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////

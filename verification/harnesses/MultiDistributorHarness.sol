@@ -4,6 +4,8 @@ pragma experimental ABIEncoderV2;
 import "../munged/distributors/contracts/MultiDistributor.sol";
 
 contract MultiDistributorHarness is MultiDistributor {
+    using EnumerableSet for EnumerableSet.Bytes32Set;
+
     constructor(IVault vault) MultiDistributor(vault) {
         // solhint-disable-previous-line no-empty-blocks
         // MultiDistributor is a singleton, so it simply uses its own address to disambiguate action identifiers
@@ -49,4 +51,12 @@ contract MultiDistributorHarness is MultiDistributor {
         return _userStakings[stakingToken][sender].distributions[distributionId].userTokensPerStake;
     }
 
+    function getUserBalance(IERC20 stakingToken, address sender) public view returns (uint256){
+        return _userStakings[stakingToken][sender].balance;
+    }
+
+    function isSubscribed(bytes32 distributionId, IERC20 stakingToken, address user, bytes32[] memory distributionIds) public view returns (bool){
+        return _userStakings[stakingToken][user].subscribedDistributions.contains(distributionId);
+    }
+    
 }
