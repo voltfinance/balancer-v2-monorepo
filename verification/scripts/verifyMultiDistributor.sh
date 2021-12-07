@@ -5,5 +5,4 @@ certoraRun verification/harnesses/MultiDistributorHarness.sol \
   --staging \
   --optimistic_loop \
   --packages @balancer-labs/v2-solidity-utils=pkg/solidity-utils @balancer-labs/v2-vault=pkg/vault \
-  --rule changesCheckOfUserTokenPerStake \
   --msg "$1"
