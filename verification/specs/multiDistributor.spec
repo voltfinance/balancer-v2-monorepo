@@ -12,6 +12,8 @@ methods {
     
     // getters for user staking
     getUserTokensPerStake(bytes32, address, address) returns uint256 envfree
+    getUserSubscribedDistributionID(address, address, uint256) returns (bytes32) envfree
+    getUserSubscribedDistributionIndex(address, address, bytes32) returns uint256 envfree
 
     // view functions
     isSubscribed(bytes32, address) returns bool envfree
@@ -20,7 +22,7 @@ methods {
     createDistribution(address, address, uint256) returns bytes32
     getUserBalance(address, address) returns uint256 envfree
     subscribeDistributions(bytes32[])
-    unsubscribeDistributions(bytes32[])
+    unsubscribeDistributions(bytes32[]) 
     stake(address, uint256, address, address)
     unstake(address, uint256, address, address)
     // isSubscribed(bytes32, address, address, bytes32[]) returns bool envfree
@@ -97,9 +99,6 @@ function helperFunctions(method f, env e, address stakingToken, address sender, 
 }
 
 
-// dist.duration == 0 => distNotCreated
-// duration != 0 => 
-
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Invariants    /////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -123,9 +122,26 @@ invariant distExistInitializedParams(bytes32 distId, env e)
         }
 
 
+// _indexes mapping and _values array are correlated in the enumerable set
+invariant enumerableSetIsCorrelated(address stakingToken, address user, uint256 index, bytes32 distId)
+        getUserSubscribedDistributionID(stakingToken, user, index) == distId <=> getUserSubscribedDistributionIndex(stakingToken, user, distId) == index
+        {
+            preserved unsubscribeDistributions(bytes32[] distributionIds) with (env e)
+            {
+                require distributionIds[0] == distId;
+            }
+        }
+
+
 // F@F - fail on UNSUBSCRIBE. A user cannot be subscribed to a distribution that does not exist
 invariant notSubscribedToNonExistingDist(bytes32 distId, address user)
         getDuration(distId) == 0 => !isSubscribed(distId, user)
+        {
+            preserved
+            {
+                require distId != 0;
+            }
+        }
 //// add an invariant duration(distId) == 0 => distId not in subscribedDistributions
 
 
@@ -139,6 +155,7 @@ invariant conditionsDistNotExist(bytes32 distId, address user)
             }
         }
 
+/* ask the balancer team about the payment rate = 0. if we assume, remove it from the inv */
 
 // F@F - fail on FUND because amount<duration. lastUpdateTime, periodFinished and PaymentRate are either initialized (!=0) or uninitialized (0) simultaneously
 // we assume here paymentRate != 0, although it is technically possible to have paymentRate == 0.
