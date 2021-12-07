@@ -12,8 +12,8 @@ methods {
     
     // getters for user staking
     getUserTokensPerStake(bytes32, address, address) returns uint256 envfree
-    getUserSubscribedDistributionID(address, address, uint256) returns (bytes32) envfree
-    getUserSubscribedDistributionIndex(address, address, bytes32) returns uint256 envfree
+    getUserSubscribedDistributionIdByIndex(address, address, uint256) returns (bytes32) envfree
+    getUserSubscribedDistributionIndexById(address, address, bytes32) returns uint256 envfree
 
     // view functions
     isSubscribed(bytes32, address) returns bool envfree
@@ -98,6 +98,16 @@ function helperFunctions(method f, env e, address stakingToken, address sender, 
         } 
 }
 
+function requireArrayCorrelation(address stakingToken, address user, uint256 index, bytes32 distId, bytes32[] distributionIdArray){
+    require distributionIdArray[0] == distId;
+    requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distId);
+}
+
+function requireEnvValuesNotZero(env e){
+    require e.msg.sender != 0;
+    require e.block.number != 0;
+    require e.block.timestamp != 0;
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Invariants    /////////////////////////////////////
@@ -122,27 +132,28 @@ invariant distExistInitializedParams(bytes32 distId, env e)
         }
 
 
-// _indexes mapping and _values array are correlated in the enumerable set
+// V@V - _indexes mapping and _values array are correlated in the enumerable set
 invariant enumerableSetIsCorrelated(address stakingToken, address user, uint256 index, bytes32 distId)
-        getUserSubscribedDistributionID(stakingToken, user, index) == distId <=> getUserSubscribedDistributionIndex(stakingToken, user, distId) == index
+       getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distId <=> getUserSubscribedDistributionIndexById(stakingToken, user, distId) == index
         {
-            preserved unsubscribeDistributions(bytes32[] distributionIds) with (env e)
+            preserved unsubscribeDistributions(bytes32[] distributionIdArray) with (env e)
             {
-                require distributionIds[0] == distId;
+                require distributionIdArray[0] == distId;
             }
         }
 
 
-// F@F - fail on UNSUBSCRIBE. A user cannot be subscribed to a distribution that does not exist
+// V@V - A user cannot be subscribed to a distribution that does not exist
 invariant notSubscribedToNonExistingDist(bytes32 distId, address user)
         getDuration(distId) == 0 => !isSubscribed(distId, user)
         {
-            preserved
+            preserved unsubscribeDistributions(bytes32[] distributionIdArray) with (env e)
             {
-                require distId != 0;
+                address stakingToken; uint256 index;
+                requireArrayCorrelation(stakingToken, user, index, distId, distributionIdArray);
             }
+
         }
-//// add an invariant duration(distId) == 0 => distId not in subscribedDistributions
 
 
 // F@F - fail on STAKE. If duration/owner/staking_token/distribution_token are not set, the distribution does not exist
@@ -151,17 +162,22 @@ invariant conditionsDistNotExist(bytes32 distId, address user)
         {
             preserved 
             {
+                address stakingToken; uint256 index; bytes32[] distributionIdArray;
+                // requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distId);
+                // require distributionIdArray[0] == distId;
+                requireArrayCorrelation(stakingToken, user, index, distId, distributionIdArray);
                 requireInvariant notSubscribedToNonExistingDist(distId, user);
             }
         }
+
 
 /* ask the balancer team about the payment rate = 0. if we assume, remove it from the inv */
 
 // F@F - fail on FUND because amount<duration. lastUpdateTime, periodFinished and PaymentRate are either initialized (!=0) or uninitialized (0) simultaneously
 // we assume here paymentRate != 0, although it is technically possible to have paymentRate == 0.
 invariant distActivatedAtLeastOnceParams(bytes32 distId, env e)
-        (getLastUpdateTime(distId) == 0 <=> getPeriodFinish(distId) == 0) && 
-        (getPeriodFinish(distId) == 0 <=> getPaymentRate(distId) == 0)
+        (getLastUpdateTime(distId) == 0 <=> getPeriodFinish(distId) == 0) //&& 
+        // (getPeriodFinish(distId) == 0 <=> getPaymentRate(distId) == 0)
         {
             preserved with (env e2)
             {
