@@ -9,7 +9,7 @@ methods {
     getPaymentRate(bytes32) returns uint256 envfree    
     getLastUpdateTime(bytes32) returns uint256 envfree
     getGlobalTokensPerStake(bytes32) returns uint256 envfree
-    
+
     // getters for user staking
     getUserTokensPerStake(bytes32, address, address) returns uint256 envfree
     getUserSubscribedDistributionIdByIndex(address, address, uint256) returns (bytes32) envfree
@@ -18,6 +18,8 @@ methods {
     // view functions
     isSubscribed(bytes32, address) returns bool envfree
 
+    getDistributionId(address, address, address) returns bytes32 envfree
+
     // non view functions
     createDistribution(address, address, uint256) returns bytes32
     getUserBalance(address, address) returns uint256 envfree
@@ -25,6 +27,7 @@ methods {
     unsubscribeDistributions(bytes32[]) 
     stake(address, uint256, address, address)
     unstake(address, uint256, address, address)
+    setDistributionDuration(bytes32, uint256) envfree
     // isSubscribed(bytes32, address, address, bytes32[]) returns bool envfree
 }
 
@@ -84,19 +87,6 @@ definition distFinished(bytes32 distId, env e) returns bool =
 //////////////////////////////////////    Helpers    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-function helperFunctions(method f, env e, address stakingToken, address sender, bytes32 distributionId, bytes32[] distributionIds) {
-        uint256 amount; address recipient;
-
-        if (f.selector == subscribeDistributions(bytes32[]).selector) {
-                subscribeDistributions(e, distributionIds);
-        } else if (f.selector == unsubscribeDistributions(bytes32[]).selector) {
-        	unsubscribeDistributions(e, distributionIds);
-        } else if (f.selector == stake(address, uint256, address, address).selector) {
-        	stake(e, stakingToken, amount, sender, recipient);
-        } else {
-                unstake(e, stakingToken, amount, sender, recipient);
-        } 
-}
 
 function requireArrayCorrelation(address stakingToken, address user, uint256 index, bytes32 distId, bytes32[] distributionIdArray){
     require distributionIdArray[0] == distId;
@@ -207,29 +197,6 @@ rule conditionsDistNew(bytes32 distId){
 ////////////////////////////////////////    Rules    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-rule changesCheckOfUserTokenPerStake(method f) filtered { f -> f.selector == subscribeDistributions(bytes32[]).selector 
-                                                                && f.selector == unsubscribeDistributions(bytes32[]).selector
-                                                                && f.selector == stake(address, uint256, address, address).selector
-                                                                && f.selector == unstake(address, uint256, address, address).selector}{
-        env e;
-        calldataarg args;
-
-        bytes32 distributionId;
-
-        bytes32[] distributionIds = [distributionId]; 
-
-        address stakingToken; address sender;
-
-        uint256 balanceBefore = getUserBalance(stakingToken, sender);
-        uint256 utpsBefore = getUserTokensPerStake(distributionId, stakingToken, sender);
-
-        helperFunctions(f, e, stakingToken, sender, distributionId, distributionIds);
-
-        uint256 balanceAfter = getUserBalance(stakingToken, sender);
-        uint256 utpsAfter = getUserTokensPerStake(distributionId, stakingToken, sender);
-
-        assert utpsBefore < utpsAfter;
-}
 
 rule gtpsMonotonicity(bytes32 distributionId, method f){
         uint256 gtpsBefore = getGlobalTokensPerStake(distributionId);
@@ -243,17 +210,54 @@ rule gtpsMonotonicity(bytes32 distributionId, method f){
         assert gtpsBefore <= gtpsAfter, "gtps was decreased";
 }
 
-rule utpsMonotonicity(bytes32 distributionId, method f){
-        address stakingToken; 
-        address sender;
+rule utpsMonotonicity(bytes32 distributionId, method f, address stakingToken, address user, uint256 index){
+        requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distributionId);
 
-        uint256 utpsBefore = getUserTokensPerStake(distributionId, stakingToken, sender);
+        uint256 utpsBefore = getUserTokensPerStake(distributionId, stakingToken, user);
 
         env e;
         calldataarg args;
         f(e, args);
 
-        uint256 utpsAfter = getUserTokensPerStake(distributionId, stakingToken, sender);
+        uint256 utpsAfter = getUserTokensPerStake(distributionId, stakingToken, user);
 
         assert utpsBefore <= utpsAfter, "utps was decreased";
 }
+
+rule lastUpdateTimeMonotonicity(bytes32 distributionId, method f, address stakingToken, address sender){
+        env e;
+        
+        requireInvariant lastUpdateTimeNotInFuture(e, distributionId);
+        require !distNotExist(distributionId);
+        requireInvariant getLastUpdateTimeLessThanFinish(distributionId);
+
+        uint256 lastUpdateTimeBefore = getLastUpdateTime(distributionId);
+
+        calldataarg args;
+        f(e, args);
+
+        uint256 lastUpdateTimeAfter = getLastUpdateTime(distributionId);
+
+        assert lastUpdateTimeBefore <= lastUpdateTimeAfter, "lastUpdateTime was decreased";
+}
+
+// lastUpdateTime can't be in the future
+invariant lastUpdateTimeNotInFuture(env e, bytes32 distributionId)
+    getLastUpdateTime(distributionId) <= e.block.timestamp
+    {preserved with (env e2)
+    {
+        require e.block.timestamp == e2.block.timestamp;
+    }}
+
+invariant getLastUpdateTimeLessThanFinish(bytes32 distributionId)
+    getLastUpdateTime(distributionId) <= getPeriodFinish(distributionId)
+
+
+// rule/invariant totalSupply == sum( (users staked and subscribed).balance )
+/*
+invariant totalEqualSumAll(bytes32 distributionId){
+    getTotalSupply(distributionId) == ghostForSumOfAll
+}
+*/
+
+// the amount of claimed tokens is less or equal to the amount of possible reward of all subscribed and staked users
