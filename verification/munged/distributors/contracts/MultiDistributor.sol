@@ -38,7 +38,7 @@ import "./interfaces/IDistributorCallback.sol";
  * https://github.com/curvefi/multi-rewards/blob/master/contracts/MultiRewards.sol commit #9947623
  */
 contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributorAuthorization {
-    using FixedPoint for uint256;
+    using Math for uint256;
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.Bytes32Set;
 
@@ -49,7 +49,8 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * from this a `paymentRate` may be easily calculated.
      *
      * Two pieces of global information are stored for the amount of tokens paid out:
-     * `globalTokensPerStake` is the number of tokens claimable from a single staking token staked from the start.
+     * `globalTokensPerStake` is a fixed point value of the number of tokens claimable from a single staking token
+     * staked from the start.
      * `lastUpdateTime` represents the timestamp of the last time `globalTokensPerStake` was updated.
      *
      * `globalTokensPerStake` can be calculated by:
@@ -81,9 +82,8 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
     mapping(bytes32 => Distribution) internal _distributions;
     mapping(IERC20 => mapping(address => UserStaking)) internal _userStakings;
 
-    constructor(IVault vault) Authentication(bytes32(uint256(address(this)))) MultiDistributorAuthorization(vault) {
+    constructor(IVault vault) MultiDistributorAuthorization(vault) {
         // solhint-disable-previous-line no-empty-blocks
-        // MultiDistributor is a singleton, so it simply uses its own address to disambiguate action identifiers
     }
 
     /**
@@ -275,7 +275,9 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         // will be merged. In both scenarios we round down to avoid paying more tokens than were received.
         if (block.timestamp >= periodFinish) {
             // Current distribution period has ended so new period consists only of amount provided.
-            distribution.paymentRate = Math.divDown(amount, duration);
+
+            // By performing fixed point (FP) division of two non-FP values we get a FP result.
+            distribution.paymentRate = FixedPoint.divDown(amount, duration);
         } else {
             // Current distribution period is still in progress.
             // Calculate number of tokens that haven't been distributed yet and apply to the new distribution period.
@@ -284,8 +286,11 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
 
             // Checked arithmetic is not required due to the if
             uint256 remainingTime = periodFinish - block.timestamp;
-            uint256 leftoverTokens = Math.mul(remainingTime, distribution.paymentRate);
-            distribution.paymentRate = Math.divDown(amount.add(leftoverTokens), duration);
+
+            // Fixed point (FP) multiplication between a non-FP (time) and FP (rate) returns a non-FP result.
+            uint256 leftoverTokens = FixedPoint.mulDown(remainingTime, distribution.paymentRate);
+            // Fixed point (FP) division of two non-FP values we get a FP result.
+            distribution.paymentRate = FixedPoint.divDown(amount.add(leftoverTokens), duration);
         }
 
         distribution.lastUpdateTime = block.timestamp;
@@ -297,16 +302,18 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @dev Subscribes a user to a list of distributions
      * @param distributionIds List of distributions to subscribe
      */
-    function subscribeDistributions(bytes32[] memory distributionIds) external override {
+    function subscribeDistributions(bytes32[] calldata distributionIds) external override {
+        bytes32 distributionId;
+        Distribution storage distribution;
         for (uint256 i; i < distributionIds.length; i++) {
-            bytes32 distributionId = distributionIds[i];
-            Distribution storage distribution = _getDistribution(distributionId);
-            require(distribution.duration > 0, "DISTRIBUTION_DOES_NOT_EXIST");
+            distributionId = distributionIds[i];
+            distribution = _getDistribution(distributionId);
 
             IERC20 stakingToken = distribution.stakingToken;
+            require(stakingToken != IERC20(0), "DISTRIBUTION_DOES_NOT_EXIST");
+
             UserStaking storage userStaking = _userStakings[stakingToken][msg.sender];
-            EnumerableSet.Bytes32Set storage subscribedDistributions = userStaking.subscribedDistributions;
-            require(subscribedDistributions.add(distributionId), "ALREADY_SUBSCRIBED_DISTRIBUTION");
+            require(userStaking.subscribedDistributions.add(distributionId), "ALREADY_SUBSCRIBED_DISTRIBUTION");
 
             uint256 amount = userStaking.balance;
             if (amount > 0) {
@@ -330,25 +337,29 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @dev Unsubscribes a user to a list of distributions
      * @param distributionIds List of distributions to unsubscribe
      */
-    function unsubscribeDistributions(bytes32[] memory distributionIds) external override {
+    function unsubscribeDistributions(bytes32[] calldata distributionIds) external override {
+        bytes32 distributionId;
+        Distribution storage distribution;
         for (uint256 i; i < distributionIds.length; i++) {
-            bytes32 distributionId = distributionIds[i];
-            Distribution storage distribution = _getDistribution(distributionId);
-            require(distribution.duration > 0, "DISTRIBUTION_DOES_NOT_EXIST");
+            distributionId = distributionIds[i];
+            distribution = _getDistribution(distributionId);
 
-            UserStaking storage userStaking = _userStakings[distribution.stakingToken][msg.sender];
-            EnumerableSet.Bytes32Set storage subscribedDistributions = userStaking.subscribedDistributions;
+            IERC20 stakingToken = distribution.stakingToken;
+            require(stakingToken != IERC20(0), "DISTRIBUTION_DOES_NOT_EXIST");
+
+            UserStaking storage userStaking = _userStakings[stakingToken][msg.sender];
 
             // If the user had tokens staked that applied to this distribution, we need to update their standing before
             // unsubscribing, which is effectively an unstake.
             uint256 amount = userStaking.balance;
             if (amount > 0) {
                 _updateUserTokensPerStake(distribution, userStaking, userStaking.distributions[distributionId]);
-                distribution.totalSupply = distribution.totalSupply.sub(amount);
+                // Safe to perform unchecked maths as `totalSupply` would be increased by `amount` when staking.
+                distribution.totalSupply -= amount;
                 emit Unstaked(distributionId, msg.sender, amount);
             }
 
-            require(subscribedDistributions.remove(distributionId), "DISTRIBUTION_NOT_SUBSCRIBED");
+            require(userStaking.subscribedDistributions.remove(distributionId), "DISTRIBUTION_NOT_SUBSCRIBED");
         }
     }
 
@@ -362,8 +373,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         uint256 amount,
         address sender,
         address recipient
-    ) external override nonReentrant {
-        require(sender == msg.sender, "INVALID_SENDER"); // TODO: let relayers pass an alternative sender
+    ) external override authenticateFor(sender) nonReentrant {
         _stake(stakingToken, amount, sender, recipient, false);
     }
 
@@ -379,8 +389,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         uint256 amount,
         address sender,
         address recipient
-    ) external override nonReentrant {
-        require(sender == msg.sender, "INVALID_SENDER"); // TODO: let relayers pass an alternative sender
+    ) external override authenticateFor(sender) nonReentrant {
         _stake(stakingToken, amount, sender, recipient, true);
     }
 
@@ -419,8 +428,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         uint256 amount,
         address sender,
         address recipient
-    ) external override nonReentrant {
-        require(sender == msg.sender, "INVALID_SENDER"); // TODO: let relayers pass an alternative sender
+    ) external override authenticateFor(sender) nonReentrant {
         _unstake(stakingToken, amount, sender, recipient);
     }
 
@@ -432,12 +440,11 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @param recipient The address which receives the claimed tokens
      */
     function claim(
-        bytes32[] memory distributionIds,
+        bytes32[] calldata distributionIds,
         bool toInternalBalance,
         address sender,
         address recipient
-    ) external override nonReentrant {
-        require(sender == msg.sender, "INVALID_SENDER"); // TODO: let relayers pass an alternative sender
+    ) external override authenticateFor(sender) nonReentrant {
         _claim(
             distributionIds,
             toInternalBalance ? IVault.UserBalanceOpKind.TRANSFER_INTERNAL : IVault.UserBalanceOpKind.WITHDRAW_INTERNAL,
@@ -454,12 +461,11 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @param callbackData The data that is used to call the callback contract's 'callback' method
      */
     function claimWithCallback(
-        bytes32[] memory distributionIds,
+        bytes32[] calldata distributionIds,
         address sender,
         IDistributorCallback callbackContract,
-        bytes memory callbackData
-    ) external override nonReentrant {
-        require(sender == msg.sender, "INVALID_SENDER"); // TODO: let relayers pass an alternative sender
+        bytes calldata callbackData
+    ) external override authenticateFor(sender) nonReentrant {
         _claim(distributionIds, IVault.UserBalanceOpKind.TRANSFER_INTERNAL, sender, address(callbackContract));
         callbackContract.distributorCallback(callbackData);
     }
@@ -469,7 +475,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @param stakingTokens The staking tokens to withdraw tokens from
      * @param distributionIds The distributions to claim for
      */
-    function exit(IERC20[] memory stakingTokens, bytes32[] memory distributionIds) external override nonReentrant {
+    function exit(IERC20[] memory stakingTokens, bytes32[] calldata distributionIds) external override nonReentrant {
         for (uint256 i; i < stakingTokens.length; i++) {
             IERC20 stakingToken = stakingTokens[i];
             UserStaking storage userStaking = _userStakings[stakingToken][msg.sender];
@@ -487,10 +493,10 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @param callbackData The data that is used to call the callback contract's 'callback' method
      */
     function exitWithCallback(
-        IERC20[] memory stakingTokens,
-        bytes32[] memory distributionIds,
+        IERC20[] calldata stakingTokens,
+        bytes32[] calldata distributionIds,
         IDistributorCallback callbackContract,
-        bytes memory callbackData
+        bytes calldata callbackData
     ) external override nonReentrant {
         for (uint256 i; i < stakingTokens.length; i++) {
             IERC20 stakingToken = stakingTokens[i];
@@ -523,9 +529,11 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
 
         // We also need to update all distributions the recipient is subscribed to,
         // adding the staked tokens to their totals.
+        bytes32 distributionId;
+        Distribution storage distribution;
         for (uint256 i; i < distributionsLength; i++) {
-            bytes32 distributionId = distributions.unchecked_at(i);
-            Distribution storage distribution = _getDistribution(distributionId);
+            distributionId = distributions.unchecked_at(i);
+            distribution = _getDistribution(distributionId);
             distribution.totalSupply = distribution.totalSupply.add(amount);
             emit Staked(distributionId, recipient, amount);
         }
@@ -569,10 +577,13 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
 
         // We also need to update all distributions the sender was subscribed to,
         // deducting the unstaked tokens from their totals.
+        bytes32 distributionId;
+        Distribution storage distribution;
         for (uint256 i; i < distributionsLength; i++) {
-            bytes32 distributionId = distributions.unchecked_at(i);
-            Distribution storage distribution = _getDistribution(distributionId);
-            distribution.totalSupply = distribution.totalSupply.sub(amount);
+            distributionId = distributions.unchecked_at(i);
+            distribution = _getDistribution(distributionId);
+            // Safe to perform unchecked maths as `totalSupply` would be increased by `amount` when staking.
+            distribution.totalSupply -= amount;
             emit Unstaked(distributionId, sender, amount);
         }
 
@@ -580,7 +591,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
     }
 
     function _claim(
-        bytes32[] memory distributionIds,
+        bytes32[] calldata distributionIds,
         IVault.UserBalanceOpKind kind,
         address sender,
         address recipient
@@ -592,9 +603,11 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         IAsset[] memory tokens = new IAsset[](distributionIds.length);
         uint256[] memory amounts = new uint256[](distributionIds.length);
 
+        bytes32 distributionId;
+        Distribution storage distribution;
         for (uint256 i; i < distributionIds.length; i++) {
-            bytes32 distributionId = distributionIds[i];
-            Distribution storage distribution = _getDistribution(distributionId);
+            distributionId = distributionIds[i];
+            distribution = _getDistribution(distributionId);
             UserStaking storage userStaking = _userStakings[distribution.stakingToken][sender];
             UserDistribution storage userDistribution = userStaking.distributions[distributionId];
 
@@ -700,8 +713,10 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
 
         // Underflow is impossible here because _lastTimePaymentApplicable(...) is always greater than last update time
         uint256 unpaidDuration = _lastTimePaymentApplicable(distribution) - distribution.lastUpdateTime;
-        uint256 unpaidAmountPerToken = Math.mul(unpaidDuration, distribution.paymentRate).divDown(supply);
-        return distribution.globalTokensPerStake.add(unpaidAmountPerToken);
+
+        // Note `paymentRate` and `distribution.globalTokensPerStake` are both fixed point values
+        uint256 unpaidTokensPerStake = unpaidDuration.mul(distribution.paymentRate).divDown(supply);
+        return distribution.globalTokensPerStake.add(unpaidTokensPerStake);
     }
 
     /**
@@ -724,10 +739,9 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         UserDistribution storage userDistribution,
         uint256 updatedGlobalTokensPerStake
     ) internal view returns (uint256) {
-        uint256 unclaimedTokens = userDistribution.unclaimedTokens;
         return
             _unaccountedUnclaimedTokens(userStaking, userDistribution, updatedGlobalTokensPerStake).add(
-                unclaimedTokens
+                userDistribution.unclaimedTokens
             );
     }
 
@@ -744,8 +758,11 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         UserDistribution storage userDistribution,
         uint256 updatedGlobalTokensPerStake
     ) internal view returns (uint256) {
-        uint256 unaccountedTokensPerStake = updatedGlobalTokensPerStake.sub(userDistribution.userTokensPerStake);
-        return userStaking.balance.mulDown(unaccountedTokensPerStake);
+        // `userDistribution.userTokensPerStake` cannot exceed `updatedGlobalTokensPerStake`
+        // Both `updatedGlobalTokensPerStake` and `userDistribution.userTokensPerStake` are fixed point values
+        uint256 unaccountedTokensPerStake = updatedGlobalTokensPerStake - userDistribution.userTokensPerStake;
+        // Fixed point (FP) multiplication between a non-FP (balance) and FP (tokensPerStake) returns a non-FP result.
+        return FixedPoint.mulDown(userStaking.balance, unaccountedTokensPerStake);
     }
 
     function _getDistribution(
