@@ -87,19 +87,11 @@ definition distFinished(bytes32 distId, env e) returns bool =
 //////////////////////////////////////    Helpers    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-
-function requireArrayCorrelation(address stakingToken, address user, uint256 index, bytes32 distId, bytes32[] distributionIdArray){
-    require distributionIdArray[0] == distId;
-    requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distId);
-}
-
 function requireEnvValuesNotZero(env e){
     require e.msg.sender != 0;
     require e.block.number != 0;
     require e.block.timestamp != 0;
 }
-
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Invariants    /////////////////////////////////////
@@ -135,41 +127,38 @@ invariant enumerableSetIsCorrelated(address stakingToken, address user, uint256 
         }
 
 
-// V@V - A user cannot be subscribed to a distribution that does not exist
+// V@V - A user cannot be subscribed to a distribution that does not exist, and the other way around - if a user is subscribed to a distribution then it has to exist
 invariant notSubscribedToNonExistingDist(bytes32 distId, address user)
-        getDuration(distId) == 0 => !isSubscribed(distId, user)
+        (getStakingToken(distId) == 0 => !isSubscribed(distId, user)) &&
+            (isSubscribed(distId, user) => getStakingToken(distId) != 0)
         {
             preserved unsubscribeDistributions(bytes32[] distributionIdArray) with (env e)
             {
                 address stakingToken; uint256 index;
-                requireArrayCorrelation(stakingToken, user, index, distId, distributionIdArray);
+                requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distId);
             }
-
         }
 
 
 // F@F - fail on STAKE. If duration/owner/staking_token/distribution_token are not set, the distribution does not exist
-invariant conditionsDistNotExist(bytes32 distId, address user)
-        getDuration(distId) == 0 => distNotExist(distId)
+invariant conditionsDistNotExist(bytes32 distId)
+        getStakingToken(distId) == 0 => distNotExist(distId)
         {
-            preserved 
+            preserved stake(address stakingToken, uint256 amount, address sender, address recipient) with (env e)
             {
-                address stakingToken; uint256 index; bytes32[] distributionIdArray;
-                // requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distId);
-                // require distributionIdArray[0] == distId;
-                requireArrayCorrelation(stakingToken, user, index, distId, distributionIdArray);
-                requireInvariant notSubscribedToNonExistingDist(distId, user);
+                uint256 index;
+                requireInvariant enumerableSetIsCorrelated(stakingToken, recipient, index, distId);
+                requireInvariant notSubscribedToNonExistingDist(distId, recipient);
             }
         }
 
 
-/* ask the balancer team about the payment rate = 0. if we assume, remove it from the inv */
+// ask the balancer team about the payment rate = 0. if we assume, remove it from the inv
 
-// F@F - fail on FUND because amount<duration. lastUpdateTime, periodFinished and PaymentRate are either initialized (!=0) or uninitialized (0) simultaneously
+// V@V - paymentRate is failing understandably. lastUpdateTime, periodFinished and PaymentRate are either initialized (!=0) or uninitialized (0) simultaneously
 // we assume here paymentRate != 0, although it is technically possible to have paymentRate == 0.
 invariant distActivatedAtLeastOnceParams(bytes32 distId, env e)
-        (getLastUpdateTime(distId) == 0 <=> getPeriodFinish(distId) == 0) //&& 
-        // (getPeriodFinish(distId) == 0 <=> getPaymentRate(distId) == 0)
+        (getLastUpdateTime(distId) == 0 <=> getPeriodFinish(distId) == 0)        
         {
             preserved with (env e2)
             {
