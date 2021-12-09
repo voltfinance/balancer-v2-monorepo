@@ -27,7 +27,7 @@ methods {
     unsubscribeDistributions(bytes32[]) 
     stake(address, uint256, address, address)
     unstake(address, uint256, address, address)
-    setDistributionDuration(bytes32, uint256) envfree
+    setDistributionDuration(bytes32, uint256)
     // isSubscribed(bytes32, address, address, bytes32[]) returns bool envfree
 }
 
@@ -98,6 +98,8 @@ function requireEnvValuesNotZero(env e){
     require e.block.number != 0;
     require e.block.timestamp != 0;
 }
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Invariants    /////////////////////////////////////
@@ -197,7 +199,7 @@ rule conditionsDistNew(bytes32 distId){
 ////////////////////////////////////////    Rules    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-
+// globalTokensPerStake is non-decreasing 
 rule gtpsMonotonicity(bytes32 distributionId, method f){
         uint256 gtpsBefore = getGlobalTokensPerStake(distributionId);
 
@@ -210,20 +212,25 @@ rule gtpsMonotonicity(bytes32 distributionId, method f){
         assert gtpsBefore <= gtpsAfter, "gtps was decreased";
 }
 
+// userTokensPerStake is non-decreasing 
 rule utpsMonotonicity(bytes32 distributionId, method f, address stakingToken, address user, uint256 index){
         requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distributionId);
+        requireInvariant globalGreaterOrEqualUser(distributionId, stakingToken, user);
 
         uint256 utpsBefore = getUserTokensPerStake(distributionId, stakingToken, user);
+        uint256 gtpsBefore = getGlobalTokensPerStake(distributionId);
 
         env e;
         calldataarg args;
         f(e, args);
 
         uint256 utpsAfter = getUserTokensPerStake(distributionId, stakingToken, user);
+        uint256 gtpsAfter = getGlobalTokensPerStake(distributionId);
 
         assert utpsBefore <= utpsAfter, "utps was decreased";
 }
 
+// lastUpdateTime is non-decreasing 
 rule lastUpdateTimeMonotonicity(bytes32 distributionId, method f, address stakingToken, address sender){
         env e;
         
@@ -249,15 +256,54 @@ invariant lastUpdateTimeNotInFuture(env e, bytes32 distributionId)
         require e.block.timestamp == e2.block.timestamp;
     }}
 
+
+// lastUpdateTime cannot be greater than periodFinish
 invariant getLastUpdateTimeLessThanFinish(bytes32 distributionId)
     getLastUpdateTime(distributionId) <= getPeriodFinish(distributionId)
 
 
-// rule/invariant totalSupply == sum( (users staked and subscribed).balance )
-/*
-invariant totalEqualSumAll(bytes32 distributionId){
-    getTotalSupply(distributionId) == ghostForSumOfAll
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////    Ghost    ////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+ghost userSubscribed(address, address, bytes32) returns bool {
+	init_state axiom forall address token. forall address user. forall bytes32 distributionId. userSubscribed(token, user, distributionId) == false;
 }
-*/
+
+hook Sstore userSubscriptions[KEY address token][KEY address user][KEY bytes32 distributionId] bool isSub STORAGE{
+    havoc userSubscribed assuming forall address stToken. forall address userAddr. forall bytes32 distId. (stToken == token && userAddr == user && distId == distributionId
+                                                => userSubscribed@new(stToken, userAddr, distId) == isSub)
+                                                && (stToken != token && userAddr != user && distId != distributionId
+                                                        => userSubscribed@new(stToken, userAddr, distId) == userSubscribed@old(stToken, userAddr, distId));
+}
+
+ghost balanceOfAllUsersInDistribution(bytes32) returns uint256 {
+	init_state axiom forall bytes32 distributionId. balanceOfAllUsersInDistribution(distributionId) == 0;
+}
+
+hook Sstore _userStakings[KEY address token][KEY address user].balance uint256 userBalance(uint256 old_userBalance) STORAGE {
+	havoc balanceOfAllUsersInDistribution assuming forall bytes32 distributionId. userSubscribed(token, user, distributionId) == true
+                                                => balanceOfAllUsersInDistribution@new(distributionId) == balanceOfAllUsersInDistribution@old(distributionId) + userBalance - old_userBalance;
+}
+
+
+// totalSupply == sum( (users staked and subscribed).balance )
+invariant totalEqualSumAll(bytes32 distributionId)
+    getTotalSupply(distributionId) == balanceOfAllUsersInDistribution(distributionId)
+
+// https://vaas-stg.certora.com/output/3106/c55d5aa7f101fae01655/?anonymousKey=4179fa9da86b0e3d07c78e48f6e48776b8470ec9
+// subscribeDistributions() - updates in userSubscribed() should force updates in balanceOfAllUsersInDistribution()
+// unsubscribeDistributions() - wrong initial state when totalSupply = 0 but user subscribed and staked, need invariant for it
+// stake() - wrong update of a ghost, when we call stake, we call it for a stakingToken but not for a spesific distributionId. That's why update can be wrong
+// unstake() - wrong update of a ghost, when we call unstake, we call it for a stakingToken but not for a spesific distributionId. That's why update can be wrong
+
+
+invariant userSubStakeCorrelationWithTotalSupply(bytes32 distributionId, address user, address token)
+    isSubscribed(distributionId, user) && getStakingToken(distributionId) == token => getUserBalance(token, user) <= getTotalSupply(distributionId)
+    { preserved {
+        requireInvariant notSubscribedToNonExistingDist(distributionId, user);
+    }}
+
 
 // the amount of claimed tokens is less or equal to the amount of possible reward of all subscribed and staked users
