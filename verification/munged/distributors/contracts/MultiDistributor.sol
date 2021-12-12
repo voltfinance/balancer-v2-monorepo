@@ -302,7 +302,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @dev Subscribes a user to a list of distributions
      * @param distributionIds List of distributions to subscribe
      */
-    function subscribeDistributions(bytes32[] calldata distributionIds) external virtual override {
+    function subscribeDistributions(bytes32[] calldata distributionIds) public virtual override { // HARNESS: external -> public
         bytes32 distributionId;
         Distribution storage distribution;
         for (uint256 i; i < distributionIds.length; i++) {
@@ -337,7 +337,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @dev Unsubscribes a user to a list of distributions
      * @param distributionIds List of distributions to unsubscribe
      */
-    function unsubscribeDistributions(bytes32[] calldata distributionIds) external virtual override {
+    function unsubscribeDistributions(bytes32[] calldata distributionIds) public virtual override { // HARNESS: external -> public
         bytes32 distributionId;
         Distribution storage distribution;
         for (uint256 i; i < distributionIds.length; i++) {
