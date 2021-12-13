@@ -84,9 +84,6 @@ contract MultiDistributorHarness is MultiDistributor {
             
             userSubscriptions[stakingToken][user][distributionId] = true;
         }
-
-        
-
     }
 
     function unsubscribeDistributions(bytes32[] calldata distributionIds) public virtual override {
@@ -103,7 +100,6 @@ contract MultiDistributorHarness is MultiDistributor {
             
             userSubscriptions[stakingToken][user][distributionId] = false;
         }
-
     }
 
     function getUserSubscribedSetArry(IERC20 stakingToken, address user) public view returns (bytes32[] memory){
