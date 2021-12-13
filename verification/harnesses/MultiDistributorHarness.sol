@@ -136,6 +136,9 @@ contract MultiDistributorHarness is MultiDistributor {
         userSubscriptions[stakingToken][user][distributionId] = false;
 
     }
-    
+
+    function getUserSubscribedSetArry(IERC20 stakingToken, address user) public view returns (bytes32[] memory){
+        return _userStakings[stakingToken][user].subscribedDistributions._values;
+    }
 
 }
