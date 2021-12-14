@@ -723,7 +723,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @dev Returns the timestamp up to which a distribution has been distributing tokens
      * @param distribution The distribution being queried
      */
-    function _lastTimePaymentApplicable(Distribution storage distribution) internal view returns (uint256) {
+    function _lastTimePaymentApplicable(Distribution storage distribution) internal view virtual returns (uint256) { // HARNESS: made it virtual
         return Math.min(block.timestamp, distribution.periodFinish);
     }
 
