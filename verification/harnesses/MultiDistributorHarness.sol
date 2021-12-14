@@ -107,4 +107,12 @@ contract MultiDistributorHarness is MultiDistributor {
         return _userStakings[stakingToken][user].subscribedDistributions._values;
     }
 
+    function getUserUnclaimedTokensOfDistribution(bytes32 distributionId, IERC20 stakingToken, address user) public view returns (uint256){
+        return _userStakings[stakingToken][user].distributions[distributionId].unclaimedTokens;
+    }
+
+    function _lastTimePaymentApplicable(Distribution storage distribution) public view override returns (uint256) {
+        return super._lastTimePaymentApplicable(distribution);
+    }
+
 }
