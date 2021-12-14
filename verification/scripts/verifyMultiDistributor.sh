@@ -4,6 +4,7 @@ certoraRun verification/harnesses/SymbolicVault.sol verification/harnesses/Multi
   --solc solc7.6 \
   --staging Eyal/CVLAndStorageType \
   --optimistic_loop \
-  --rule distIdCorrelatedWithTrio \
+  --rule claimCheck \
+  --settings -postProcessCounterExamples=true \
   --packages @balancer-labs/v2-solidity-utils=pkg/solidity-utils @balancer-labs/v2-vault=pkg/vault \
   --msg "$1"
