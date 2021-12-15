@@ -27,7 +27,7 @@ import "./interfaces/IMultiDistributor.sol";
 contract DistributionScheduler {
     using SafeERC20 for IERC20;
 
-    IMultiDistributor private immutable _multiDistributor;
+    IMultiDistributor internal immutable _multiDistributor; // HARNESS private -> internal
 
     constructor(IMultiDistributor multiDistributor) {
         _multiDistributor = multiDistributor;
@@ -48,7 +48,7 @@ contract DistributionScheduler {
     event DistributionScheduled(bytes32 indexed distributionId, bytes32 scheduleId, uint256 startTime, uint256 amount);
     event DistributionStarted(bytes32 indexed distributionId, bytes32 scheduleId, uint256 startTime, uint256 amount);
 
-    mapping(bytes32 => ScheduledDistribution) private _scheduledDistributions;
+    mapping(bytes32 => ScheduledDistribution) internal _scheduledDistributions; // HARNESS private -> internal
 
     function getScheduledDistributionInfo(bytes32 scheduleId) external view returns (ScheduledDistribution memory) {
         return _scheduledDistributions[scheduleId];
