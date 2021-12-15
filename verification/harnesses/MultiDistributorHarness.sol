@@ -111,7 +111,7 @@ contract MultiDistributorHarness is MultiDistributor {
         return _userStakings[stakingToken][user].distributions[distributionId].unclaimedTokens;
     }
 
-    function _lastTimePaymentApplicable(Distribution storage distribution) public view override returns (uint256) {
+    function _lastTimePaymentApplicable(Distribution storage distribution) internal view override returns (uint256) {
         return super._lastTimePaymentApplicable(distribution);
     }
 

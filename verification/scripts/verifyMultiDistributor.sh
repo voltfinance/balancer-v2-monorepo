@@ -2,7 +2,7 @@ certoraRun verification/harnesses/SymbolicVault.sol verification/harnesses/Multi
   verification/harnesses/SymbolicERC20A.sol verification/harnesses/SymbolicERC20B.sol \
   --verify MultiDistributorHarness:verification/specs/multiDistributor.spec \
   --solc solc7.6 \
-  --staging Eyal/CVLAndStorageType \
+  --staging \
   --optimistic_loop \
   --rule claimCheck \
   --settings -postProcessCounterExamples=true \
