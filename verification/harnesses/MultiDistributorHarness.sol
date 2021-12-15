@@ -13,7 +13,8 @@ contract MultiDistributorHarness is MultiDistributor {
         // MultiDistributor is a singleton, so it simply uses its own address to disambiguate action identifiers
     }
 
-    mapping(IERC20 => mapping(address => mapping(bytes32 => bool))) public userSubscriptions;
+    mapping(IERC20 => mapping(address => mapping(bytes32 => bool))) public dummyUserSubscriptions;
+    mapping(IERC20 => mapping(address => bytes32)) public userSubscriptions;
 
 
     function getStakingToken(bytes32 distributionId) public view returns (IERC20){
@@ -82,7 +83,7 @@ contract MultiDistributorHarness is MultiDistributor {
             distributionId = distributionIds[i];
             IERC20 stakingToken = distribution.stakingToken;
             
-            userSubscriptions[stakingToken][user][distributionId] = true;
+            dummyUserSubscriptions[stakingToken][user][distributionId] = true;
         }
     }
 
@@ -98,7 +99,7 @@ contract MultiDistributorHarness is MultiDistributor {
             distributionId = distributionIds[i];
             IERC20 stakingToken = distribution.stakingToken;
             
-            userSubscriptions[stakingToken][user][distributionId] = false;
+            dummyUserSubscriptions[stakingToken][user][distributionId] = false;
         }
     }
 
