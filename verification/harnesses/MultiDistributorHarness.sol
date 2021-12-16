@@ -79,8 +79,8 @@ contract MultiDistributorHarness is MultiDistributor {
         bytes32 distributionId;
         Distribution storage distribution;
         for (uint256 i; i < distributionIds.length; i++) {
-            distribution = _getDistribution(distributionId);
             distributionId = distributionIds[i];
+            distribution = _getDistribution(distributionId);
             IERC20 stakingToken = distribution.stakingToken;
             
             dummyUserSubscriptions[stakingToken][user][distributionId] = true;
@@ -95,8 +95,8 @@ contract MultiDistributorHarness is MultiDistributor {
         bytes32 distributionId;
         Distribution storage distribution;
         for (uint256 i; i < distributionIds.length; i++) {
-            distribution = _getDistribution(distributionId);
             distributionId = distributionIds[i];
+            distribution = _getDistribution(distributionId);
             IERC20 stakingToken = distribution.stakingToken;
             
             dummyUserSubscriptions[stakingToken][user][distributionId] = false;
