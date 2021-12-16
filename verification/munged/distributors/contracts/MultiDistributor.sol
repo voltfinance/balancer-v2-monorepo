@@ -79,8 +79,8 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * `unclaimedTokens` and releasing that amount of tokens to them.
      */
 
-    mapping(bytes32 => Distribution) private _distributions;
-    mapping(IERC20 => mapping(address => UserStaking)) private _userStakings;
+    mapping(bytes32 => Distribution) internal _distributions;    // HARNESS: private -> internal
+    mapping(IERC20 => mapping(address => UserStaking)) internal _userStakings;   // HARNESS: private -> internal
 
     constructor(IVault vault) MultiDistributorAuthorization(vault) {
         // solhint-disable-previous-line no-empty-blocks
@@ -311,7 +311,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @dev Subscribes a user to a list of distributions
      * @param distributionIds List of distributions to subscribe
      */
-    function subscribeDistributions(bytes32[] calldata distributionIds) external override {
+    function subscribeDistributions(bytes32[] calldata distributionIds) public virtual override { // HARNESSES: external -> public and made it virtual
         bytes32 distributionId;
         Distribution storage distribution;
         for (uint256 i; i < distributionIds.length; i++) {
@@ -346,7 +346,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @dev Unsubscribes a user to a list of distributions
      * @param distributionIds List of distributions to unsubscribe
      */
-    function unsubscribeDistributions(bytes32[] calldata distributionIds) external override {
+    function unsubscribeDistributions(bytes32[] calldata distributionIds) public virtual override {   // HARNESSES: external -> public and made it virtual
         bytes32 distributionId;
         Distribution storage distribution;
         for (uint256 i; i < distributionIds.length; i++) {
@@ -738,7 +738,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
      * @dev Returns the timestamp up to which a distribution has been distributing tokens
      * @param distribution The distribution being queried
      */
-    function _lastTimePaymentApplicable(Distribution storage distribution) private view returns (uint256) {
+    function _lastTimePaymentApplicable(Distribution storage distribution) internal view virtual returns (uint256) {  // HARNESSES: private -> internal and made it virtual
         return Math.min(block.timestamp, distribution.periodFinish);
     }
 
@@ -788,7 +788,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         return _getDistribution(getDistributionId(stakingToken, distributionToken, owner));
     }
 
-    function _getDistribution(bytes32 id) private view returns (Distribution storage) {
+    function _getDistribution(bytes32 id) internal view returns (Distribution storage) { // HARNESS: private -> internal
         return _distributions[id];
     }
 }

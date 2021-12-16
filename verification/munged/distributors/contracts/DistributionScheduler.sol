@@ -27,8 +27,8 @@ import "./interfaces/IDistributionScheduler.sol";
 contract DistributionScheduler is IDistributionScheduler {
     using SafeERC20 for IERC20;
 
-    IMultiDistributor private immutable _multiDistributor;
-    mapping(bytes32 => ScheduledDistribution) private _scheduledDistributions;
+    IMultiDistributor internal immutable _multiDistributor;  // HARNESS: private -> internal
+    mapping(bytes32 => ScheduledDistribution) internal _scheduledDistributions;  // HARNESS: private -> internal
 
     constructor(IMultiDistributor multiDistributor) {
         _multiDistributor = multiDistributor;
