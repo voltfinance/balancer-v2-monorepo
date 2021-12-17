@@ -13,8 +13,8 @@ contract MultiDistributorHarness is MultiDistributor {
         // MultiDistributor is a singleton, so it simply uses its own address to disambiguate action identifiers
     }
 
-    mapping(IERC20 => mapping(address => mapping(bytes32 => bool))) public dummyUserSubscriptions;
-    mapping(IERC20 => mapping(address => bytes32)) public userSubscriptions;
+    // mapping(IERC20 => mapping(address => mapping(bytes32 => bool))) public dummyUserSubscriptions;
+    // mapping(IERC20 => mapping(address => uint256)) public dummyUserStakings;
 
 
     function getStakingToken(bytes32 distributionId) public view returns (IERC20){
@@ -71,6 +71,12 @@ contract MultiDistributorHarness is MultiDistributor {
         return index;
     }
 
+    function getDistIdContainedInUserSubscribedDistribution(IERC20 stakingToken, address sender, bytes32 distId) public view returns (bool isContained){
+        isContained = _userStakings[stakingToken][sender].subscribedDistributions.contains(distId);
+        return isContained;
+    }
+
+    /*
     function subscribeDistributions(bytes32[] calldata distributionIds) public virtual override {
         super.subscribeDistributions(distributionIds);
         
@@ -103,6 +109,79 @@ contract MultiDistributorHarness is MultiDistributor {
         }
     }
 
+    
+    function stake(IERC20 stakingToken, uint256 amount, address sender, address recipient) public virtual override {
+        super.stake(stakingToken, amount, sender, recipient);
+        _stakeHarness(stakingToken, amount, sender, recipient);
+    }
+
+    function stakeUsingVault(IERC20 stakingToken, uint256 amount, address sender, address recipient) public virtual override {
+        super.stakeUsingVault(stakingToken, amount, sender, recipient);
+        _stakeHarness(stakingToken, amount, sender, recipient);
+    }
+
+    function stakeWithPermit(IERC20 stakingToken, uint256 amount, address sender, uint256 deadline, uint8 v, bytes32 r, bytes32 s) public virtual override {
+        super.stakeWithPermit(stakingToken, amount, sender, deadline, v, r, s);
+        _stakeHarness(stakingToken, amount, sender, sender);
+    }
+
+    function unstake(IERC20 stakingToken, uint256 amount, address sender, address recipient) public virtual override {
+        super.unstake(stakingToken, amount, sender, recipient);
+        _unstakeHarness(stakingToken, amount, sender, recipient);
+    }
+    
+    function _stakeHarness(IERC20 stakingToken, uint256 amount, address sender, address recipient) private {
+        UserStaking storage userStaking = _userStakings[stakingToken][recipient];
+        EnumerableSet.Bytes32Set storage distributions = userStaking.subscribedDistributions;
+        uint256 distributionsLength = distributions.length();
+        
+        bytes32 distributionId;
+        Distribution storage distribution;
+        for (uint256 i; i < distributionsLength; i++) {
+            distributionId = distributions.unchecked_at(i);
+            distribution = _getDistribution(distributionId);
+            dummyUserStakings[stakingToken][recipient] += amount;
+        }
+    }
+
+    function _unstakeHarness(IERC20 stakingToken, uint256 amount, address sender, address recipient) private {
+        UserStaking storage userStaking = _userStakings[stakingToken][recipient];
+        EnumerableSet.Bytes32Set storage distributions = userStaking.subscribedDistributions;
+        uint256 distributionsLength = distributions.length();
+        
+        bytes32 distributionId;
+        Distribution storage distribution;
+        for (uint256 i; i < distributionsLength; i++) {
+            distributionId = distributions.unchecked_at(i);
+            distribution = _getDistribution(distributionId);
+            dummyUserStakings[stakingToken][recipient] -= amount;
+        }
+    }
+
+    function exit(IERC20[] memory stakingTokens, bytes32[] calldata distributionIds) public virtual override nonReentrant { // HARNESSES: external -> public and made it virtual
+        super.exit(stakingTokens, distributionIds);
+        for (uint256 i; i < stakingTokens.length; i++) {
+            IERC20 stakingToken = stakingTokens[i];
+            UserStaking storage userStaking = _userStakings[stakingToken][msg.sender];
+            _unstakeHarness(stakingToken, userStaking.balance, msg.sender, msg.sender);
+        }
+    }
+
+    function exitWithCallback(
+        IERC20[] calldata stakingTokens,
+        bytes32[] calldata distributionIds,
+        IDistributorCallback callbackContract,
+        bytes calldata callbackData
+    ) public virtual override nonReentrant { // HARNESSES: external -> public and made it virtual
+        super.exitWithCallback(stakingTokens, distributionIds, callbackContract, callbackData);
+        for (uint256 i; i < stakingTokens.length; i++) {
+            IERC20 stakingToken = stakingTokens[i];
+            UserStaking storage userStaking = _userStakings[stakingToken][msg.sender];
+            _unstakeHarness(stakingToken, userStaking.balance, msg.sender, msg.sender);
+        }
+    }
+    */
+
     function getUserSubscribedSetArry(IERC20 stakingToken, address user) public view returns (bytes32[] memory){
         return _userStakings[stakingToken][user].subscribedDistributions._values;
     }
@@ -114,5 +193,4 @@ contract MultiDistributorHarness is MultiDistributor {
     function _lastTimePaymentApplicable(Distribution storage distribution) internal view override returns (uint256) {
         return super._lastTimePaymentApplicable(distribution);
     }
-
 }
