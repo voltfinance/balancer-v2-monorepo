@@ -21,7 +21,12 @@ methods {
 
     // view functions
     isSubscribed(bytes32, address) returns bool envfree
+<<<<<<< Updated upstream
     getDistributionId(address stakingToken, address distributionToken, address owner) returns bytes32 envfree //=> uniqueHash(stakingToken, distributionToken, owner)
+=======
+    // getDistributionId(address stakingToken, address distributionToken, address owner) returns bytes32 envfree => uniqueHash(stakingToken, distributionToken, owner)
+    getDistributionId(address, address, address) returns bytes32 envfree
+>>>>>>> Stashed changes
 
     // non view functions
     createDistribution(address, address, uint256) returns bytes32
@@ -206,15 +211,13 @@ function setUp(env e, bytes32 distId, address _stakingToken, address _distributi
 ////////////////////////////////////////    Ghost    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-/*
-ghost uniqueHash(address, address, address) returns bytes32{
-    axiom forall address stakingToken1. forall address distributionToken1. forall address owner1. 
-                 forall address stakingToken2. forall address distributionToken2. forall address owner2.
-                 ((stakingToken1 != stakingToken2) || (distributionToken1 != distributionToken2) ||
-                 (owner1 != owner2)) => 
-                 (uniqueHash(stakingToken1, distributionToken1, owner1) != uniqueHash(stakingToken2, distributionToken2, owner2));
-}
-*/
+// ghost uniqueHash(address, address, address) returns bytes32{
+//     axiom forall address stakingToken1. forall address distributionToken1. forall address owner1. 
+//                  forall address stakingToken2. forall address distributionToken2. forall address owner2.
+//                  ((stakingToken1 != stakingToken2) || (distributionToken1 != distributionToken2) ||
+//                  (owner1 != owner2)) => 
+//                  (uniqueHash(stakingToken1, distributionToken1, owner1) != uniqueHash(stakingToken2, distributionToken2, owner2));
+// }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Invariants    /////////////////////////////////////
@@ -395,44 +398,44 @@ invariant globalGreaterOrEqualUser(bytes32 distributionId, address stakingToken,
 
 // Subscribed and staked user's balance should be less or equal than/to the totalSupply of a distribution
 invariant userSubStakeCorrelationWithTotalSupply(bytes32 distributionId, address user, address token, uint256 index, env e)
-    (isSubscribed(distributionId, e.msg.sender) && getUserBalance(token, e.msg.sender) > 0)
-            => (getUserBalance(token, e.msg.sender) <= getTotalSupply(distributionId))
+    (isSubscribed(distributionId, user) && getUserBalance(token, user) > 0)
+            => (getUserBalance(token, user) <= getTotalSupply(distributionId))
     { 
         preserved with (env e2) 
         {
-            require e2.msg.sender == e.msg.sender;
+            require e2.msg.sender == user;
             require getStakingToken(distributionId) == token;
-            requireInvariant notSubscribedToNonExistingDistSet(distributionId, e2.msg.sender);
-            requireInvariant enumerableSetIsCorrelated(token, e2.msg.sender, index, distributionId);
+            requireInvariant notSubscribedToNonExistingDist(distributionId, user);
+            requireInvariant enumerableSetIsCorrelated(token, user, index, distributionId);
         }
         preserved unstake(address stakingToken, uint256 amount, address sender, address recipient) with (env e3)
         {
-            require e.msg.sender == e3.msg.sender;
+            require user == sender;
             require getStakingToken(distributionId) == token;
             require stakingToken == token;
-            requireInvariant notSubscribedToNonExistingDistSet(distributionId, e3.msg.sender);
-            requireInvariant enumerableSetIsCorrelated(token, e3.msg.sender, index, distributionId);
+            requireInvariant notSubscribedToNonExistingDist(distributionId, user);
+            requireInvariant enumerableSetIsCorrelated(token, user, index, distributionId);
         }
         preserved exit(address[] stakingTokens, bytes32[] distributionIds) with (env e4)
         {
-            require e.msg.sender == e4.msg.sender;
+            require e4.msg.sender == user;
             require getStakingToken(distributionId) == token;
-            require stakingTokens.length <= max_uint / 32;
+            require stakingTokens.length <= 3; // max_uint / 32;
             require stakingTokens[0] == token;
             require distributionIds[0] == distributionId;
-            requireInvariant notSubscribedToNonExistingDistSet(distributionId, e4.msg.sender);
-            requireInvariant enumerableSetIsCorrelated(token, e4.msg.sender, index, distributionId);
+            requireInvariant notSubscribedToNonExistingDist(distributionId, user);
+            requireInvariant enumerableSetIsCorrelated(token, user, index, distributionId);
         }
         preserved exitWithCallback(address[] stakingTokens, bytes32[] distributionIds, address callbackContract, bytes callbackData) with (env e5)
         {
-            require e.msg.sender == e5.msg.sender;
+            require e5.msg.sender == user;
             require getStakingToken(distributionId) == token;
-            require stakingTokens.length <= max_uint / 32;
-            require distributionIds.length <= max_uint / 32;
+            require stakingTokens.length <= 3; // max_uint / 32;
+            require distributionIds.length <= 3; // max_uint / 32;
             require stakingTokens[0] == token;
             require distributionIds[0] == distributionId;
-            requireInvariant notSubscribedToNonExistingDistSet(distributionId, e5.msg.sender);
-            requireInvariant enumerableSetIsCorrelated(token, e5.msg.sender, index, distributionId);
+            requireInvariant notSubscribedToNonExistingDist(distributionId, user);
+            requireInvariant enumerableSetIsCorrelated(token, user, index, distributionId);
         }
     }
 
@@ -656,15 +659,16 @@ rule permanentOwner(bytes32 distributionId, method f){
 }
 
 
-rule claimCheck(address token, address user, bytes32 distributionId, uint256 index){
+rule claimCheck(address stToken, address dstToken, address user, bytes32 distributionId, uint256 index){
     env e;
     
     require isSubscribed(distributionId, user);
-    require getStakingToken(distributionId) == token;
-    requireInvariant enumerableSetIsCorrelated(token, user, index, distributionId);
-    require getUserBalance(token, user) > 0;
+    require getStakingToken(distributionId) == stToken;
+    require getDistributionToken(distributionId) == dstToken;
+    requireInvariant enumerableSetIsCorrelated(stToken, user, index, distributionId);
+    require getUserBalance(stToken, user) > 0;
     require distributionId > 0;
-    require token > 0;
+    require stToken > 0;
 
     bytes32[] distributionIds;
     require distributionIds.length == 1;
@@ -675,15 +679,15 @@ rule claimCheck(address token, address user, bytes32 distributionId, uint256 ind
     uint256 assetBefore; uint256 internalBefore; uint256 taouBefore;
     uint256 assetAfter; uint256 internalAfter; uint256 taouAfter;
 
-    assetBefore, internalBefore, taouBefore = Vault.totalAssetsOfUser(e, token, user);
+    assetBefore, internalBefore, taouBefore = Vault.totalAssetsOfUser(e, dstToken, user);
 
     uint256 shouldBeClaimedAfter = getClaimableTokens(e, distributionId, sender);
 
     claim(e, distributionIds, toInternalBalance, sender, user);
 
-    uint256 userBalance = getUserBalance(token, user);
+    uint256 userBalance = getUserBalance(stToken, user);
 
-    assetAfter, internalAfter, taouAfter = Vault.totalAssetsOfUser(e, token, user);
+    assetAfter, internalAfter, taouAfter = Vault.totalAssetsOfUser(e, dstToken, user);
 
     mathint all = taouBefore + shouldBeClaimedAfter;
 
@@ -693,6 +697,32 @@ rule claimCheck(address token, address user, bytes32 distributionId, uint256 ind
 // asset as getUnclaimedTokens
 // check that claim increases assets
 // check that assets are incresed by getClaimeableTokens of 
+
+rule itIsOnlyMyReward(address stToken, address dstToken, bytes32 distributionId, uint256 index, address sender){
+    env e;
+    address userA; address userB;
+    require isSubscribed(distributionId, sender); require isSubscribed(distributionId, userB);
+    requireInvariant enumerableSetIsCorrelated(stToken, sender, index, distributionId); requireInvariant enumerableSetIsCorrelated(stToken, userB, index, distributionId);
+    requireInvariant userSubStakeCorrelationWithTotalSupply(distributionId, userA, stToken, index, e); requireInvariant userSubStakeCorrelationWithTotalSupply(distributionId, userB, stToken, index, e);
+
+    require getStakingToken(distributionId) == stToken;
+    require getDistributionToken(distributionId) == dstToken;
+
+    bytes32[] distributionIds;
+    require distributionIds.length == 1;
+    require distributionIds[0] == distributionId;
+    bool toInternalBalance;
+
+    uint256 userBShouldClaimBefore = getClaimableTokens(e, distributionId, userB);
+
+    claim(e, distributionIds, toInternalBalance, sender, userA);
+
+    uint256 userBShouldClaimAfter = getClaimableTokens(e, distributionId, userB);
+
+    assert userBShouldClaimBefore <= userBShouldClaimAfter;
+
+}
+
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
