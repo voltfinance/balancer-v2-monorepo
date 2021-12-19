@@ -21,12 +21,8 @@ methods {
 
     // view functions
     isSubscribed(bytes32, address) returns bool envfree
-<<<<<<< Updated upstream
-    getDistributionId(address stakingToken, address distributionToken, address owner) returns bytes32 envfree //=> uniqueHash(stakingToken, distributionToken, owner)
-=======
     // getDistributionId(address stakingToken, address distributionToken, address owner) returns bytes32 envfree => uniqueHash(stakingToken, distributionToken, owner)
     getDistributionId(address, address, address) returns bytes32 envfree
->>>>>>> Stashed changes
 
     // non view functions
     createDistribution(address, address, uint256) returns bytes32
