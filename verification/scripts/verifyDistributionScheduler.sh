@@ -6,6 +6,3 @@ certoraRun verification/harnesses/MultiDistributorHarness.sol verification/harne
   --rule scheduleExistInitializedParams \
   --packages @balancer-labs/v2-solidity-utils=pkg/solidity-utils @balancer-labs/v2-vault=pkg/vault \
   --msg "$1"
-
-
-  #   verification/harnesses/SymbolicERC20A.sol verification/harnesses/SymbolicERC20B.sol \

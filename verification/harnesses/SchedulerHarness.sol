@@ -13,28 +13,16 @@ contract SchedulerHarness is DistributionScheduler {
         return _scheduledDistributions[scheduleId].distributionId;
     }
 
-    function getScheduledStakingToken(bytes32 distributionId) public view returns (IERC20){
-        return _scheduledDistributions[distributionId].stakingToken;
+    function getScheduledStartTime(bytes32 scheduleId) public view returns (uint256){
+        return _scheduledDistributions[scheduleId].startTime;
     }
 
-    function getScheduledDistributionToken(bytes32 distributionId) public view returns (IERC20){
-        return _scheduledDistributions[distributionId].distributionToken;
+    function getScheduledAmount(bytes32 scheduleId) public view returns (uint256){
+        return _scheduledDistributions[scheduleId].amount;
     }
 
-    function getScheduledStartTime(bytes32 distributionId) public view returns (uint256){
-        return _scheduledDistributions[distributionId].startTime;
-    }
-
-    function getScheduledOwner(bytes32 distributionId) public view returns (address){
-        return _scheduledDistributions[distributionId].owner;
-    }
-
-    function getScheduledAmount(bytes32 distributionId) public view returns (uint256){
-        return _scheduledDistributions[distributionId].amount;
-    }
-
-    function getScheduledStatus(bytes32 distributionId) public view returns (DistributionStatus){
-        return _scheduledDistributions[distributionId].status;
+    function getScheduledStatus(bytes32 scheduleId) public view returns (DistributionStatus){
+        return _scheduledDistributions[scheduleId].status;
     }
 }
 
