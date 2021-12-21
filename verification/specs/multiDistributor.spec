@@ -40,7 +40,7 @@ methods {
 
     // getters for harness
     // dummyUserSubscriptions(address, address, bytes32) returns bool envfree
-    _lastTimePaymentApplicable(address) returns uint256
+    _lastTimePaymentApplicableHarness(bytes32) returns uint256
 
     totalAssetsOfUser(address, address) returns uint256 => DISPATCHER(true)
     manageUserBalance((uint8,address,uint256,address,address)[]) => DISPATCHER(true)
@@ -453,10 +453,15 @@ invariant userSubStakeCorrelationWithTotalSupply(bytes32 distributionId, address
     }
 
 
-// @AK - not sure in correctness of it
 // _lastTimePaymentApplicable should always be greater than distribution.lastUpdateTime to avoid underflow
-invariant validityOfLastTimePaymentApplicable(bytes32 distributionId, address rand, env e)
-        getLastUpdateTime(distributionId) <= _lastTimePaymentApplicable(e, rand)
+invariant validityOfLastTimePaymentApplicable(bytes32 distributionId, env e)
+    getLastUpdateTime(distributionId) <= _lastTimePaymentApplicableHarness(e, distributionId)
+    {
+        preserved with (env e2)
+        { 
+            require e.block.timestamp == e2.block.timestamp;
+        }
+    }
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -724,70 +729,89 @@ rule permanentOwner(bytes32 distributionId, method f){
 }
 
 
-rule claimCheck(address stToken, address dstToken, address user, bytes32 distributionId, uint256 index){
+rule claimCorrectnessCheckForOneUser(address dstToken, address sender, address recipient, bytes32 distributionId, uint256 index){
     env e;
-    
-    require isSubscribed(distributionId, user);
-    require getStakingToken(distributionId) == stToken;
-    require getDistributionToken(distributionId) == dstToken;
-    requireInvariant enumerableSetIsCorrelated(stToken, user, index, distributionId);
-    require getUserBalance(stToken, user) > 0;
-    require distributionId > 0;
-    require stToken > 0;
-
-    bytes32[] distributionIds;
-    require distributionIds.length == 1;
-    require distributionIds[0] == distributionId;
-    bool toInternalBalance;
-    address sender;
-    
     uint256 assetBefore; uint256 internalBefore; uint256 taouBefore;
     uint256 assetAfter; uint256 internalAfter; uint256 taouAfter;
 
-    assetBefore, internalBefore, taouBefore = Vault.totalAssetsOfUser(e, dstToken, user);
+    bool toInternalBalance;
+
+    bytes32[] distributionIds;
+    
+    require getDistributionToken(distributionId) == dstToken;
+    require Vault != recipient;
+    require recipient != currentContract;    
+    require distributionIds.length == 1;
+    require distributionIds[0] == distributionId;
+
+    assetBefore, internalBefore, taouBefore = Vault.totalAssetsOfUser(e, dstToken, recipient);
+
+    uint256 shouldBeClaimed = getClaimableTokens(e, distributionId, sender);
+
+    claim(e, distributionIds, toInternalBalance, sender, recipient);
+
+    assetAfter, internalAfter, taouAfter = Vault.totalAssetsOfUser(e, dstToken, recipient);
+
+    mathint all = taouBefore + shouldBeClaimed;
+
+    assert all == to_mathint(taouAfter), "total asssets are not the same";
+
+    // assert taouBefore < taouAfter, "claim decreased total balance of a recipient";
+}
+
+
+// getClaimableTokens are 0 after claim. check for no reclaim
+rule noReclaim(address dstToken, address sender, address recipient, bytes32 distributionId, uint256 index){
+    env e;
+
+    bool toInternalBalance;
+
+    bytes32[] distributionIds;
+    
+    require getDistributionToken(distributionId) == dstToken;
+    require Vault != recipient;
+    require recipient != currentContract;    
+    require distributionIds.length == 1;
+    require distributionIds[0] == distributionId;
+
+    uint256 shouldBeClaimedBefore = getClaimableTokens(e, distributionId, sender);
+
+    claim(e, distributionIds, toInternalBalance, sender, recipient);
 
     uint256 shouldBeClaimedAfter = getClaimableTokens(e, distributionId, sender);
 
-    claim(e, distributionIds, toInternalBalance, sender, user);
-
-    uint256 userBalance = getUserBalance(stToken, user);
-
-    assetAfter, internalAfter, taouAfter = Vault.totalAssetsOfUser(e, dstToken, user);
-
-    mathint all = taouBefore + shouldBeClaimedAfter;
-
-    assert all == to_mathint(taouAfter), "total asssets are not the same";
+    assert shouldBeClaimedAfter == 0, "shouldBeClaimedAfter isn't 0";
 }
 
-// asset as getUnclaimedTokens
-// check that claim increases assets
-// check that assets are incresed by getClaimeableTokens of 
 
-rule itIsOnlyMyReward(address stToken, address dstToken, bytes32 distributionId, uint256 index, address sender){
+rule itIsOnlyMyReward(address dstToken, bytes32 distributionId, uint256 index, address sender){
     env e;
     address userA; address userB;
-    require isSubscribed(distributionId, sender); require isSubscribed(distributionId, userB);
-    requireInvariant enumerableSetIsCorrelated(stToken, sender, index, distributionId); requireInvariant enumerableSetIsCorrelated(stToken, userB, index, distributionId);
-    requireInvariant userSubStakeCorrelationWithTotalSupply(distributionId, userA, stToken, index, e); requireInvariant userSubStakeCorrelationWithTotalSupply(distributionId, userB, stToken, index, e);
 
-    require getStakingToken(distributionId) == stToken;
-    require getDistributionToken(distributionId) == dstToken;
+    bool toInternalBalance;
 
     bytes32[] distributionIds;
+
+    // require isSubscribed(distributionId, sender); require isSubscribed(distributionId, userB);
+    require getDistributionToken(distributionId) == dstToken;
     require distributionIds.length == 1;
     require distributionIds[0] == distributionId;
-    bool toInternalBalance;
+    require sender != userB;
+    require userA != userB;
 
     uint256 userBShouldClaimBefore = getClaimableTokens(e, distributionId, userB);
 
-    claim(e, distributionIds, toInternalBalance, sender, userA);
+    claim(e, distributionIds, toInternalBalance, sender, userA);  // f(e2, args);
 
     uint256 userBShouldClaimAfter = getClaimableTokens(e, distributionId, userB);
 
-    assert userBShouldClaimBefore <= userBShouldClaimAfter;
-
+    assert userBShouldClaimBefore == userBShouldClaimAfter; // >=
 }
 
+
+// check all function when  getClaimableTokens increases
+
+// check if user can get more by staking of other user, call with new env
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
