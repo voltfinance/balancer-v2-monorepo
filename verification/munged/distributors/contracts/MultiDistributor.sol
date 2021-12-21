@@ -617,6 +617,11 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         uint256 numTokens;
         IAsset[] memory tokens = new IAsset[](distributionIds.length);
         uint256[] memory amounts = new uint256[](distributionIds.length);
+        
+        for (uint256 i; i < distributionIds.length; i++) {      // HARNESS
+            tokens[i] = IAsset(0);
+            amounts[i] = 0;
+        }
 
         bytes32 distributionId;
         Distribution storage distribution;
