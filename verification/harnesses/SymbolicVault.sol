@@ -31,26 +31,30 @@ contract SymbolicVault {
             address sender = ops[i].sender;
             IERC20 asset = ops[i].asset;
 
-    		//if (ops[i].kind ==  UserBalanceOpKind.DEPOSIT_INTERNAL) {
-    		//	IERC20(asset).transferFrom(sender, address(this), amount);
-    		//	balanceOf[asset][recipient] = balanceOf[asset][recipient].add(amount);
-    		//}
-    		/*else*/ if (ops[i].kind ==  UserBalanceOpKind.WITHDRAW_INTERNAL) {
+    		if (ops[i].kind ==  UserBalanceOpKind.DEPOSIT_INTERNAL) {
+    			IERC20(asset).transferFrom(sender, address(this), amount);
+    			balanceOf[asset][recipient] = balanceOf[asset][recipient].add(amount);
+    		}
+    		else if (ops[i].kind ==  UserBalanceOpKind.WITHDRAW_INTERNAL) {
     			IERC20(asset).transfer(recipient, amount);
     			balanceOf[asset][sender] = balanceOf[asset][sender].sub(amount);
     		}
-    		else /*if  (ops[i].kind ==  UserBalanceOpKind.TRANSFER_INTERNAL)*/ {
+    		else if  (ops[i].kind ==  UserBalanceOpKind.TRANSFER_INTERNAL) {
     			balanceOf[asset][sender] = balanceOf[asset][sender].sub(amount);
     			balanceOf[asset][recipient] = balanceOf[asset][recipient].add(amount);
     		}
-    		//else if (ops[i].kind ==  UserBalanceOpKind.TRANSFER_EXTERNAL) {
-    		//	IERC20(asset).transferFrom(sender, address(this), amount);
-            //    IERC20(asset).transfer(recipient, amount);	
-    		//}
+    		else if (ops[i].kind ==  UserBalanceOpKind.TRANSFER_EXTERNAL) {
+    			IERC20(asset).transferFrom(sender, address(this), amount);
+                IERC20(asset).transfer(recipient, amount);	
+    		}
     	}
     }
 
-    function totalAssetsOfUser(IERC20 asset, address user) external returns (uint256, uint256, uint256){
-        return (asset.balanceOf(user), balanceOf[asset][user], asset.balanceOf(user).add(balanceOf[asset][user]));
+    function getBalanceOf(IERC20 asset, address user) external returns (uint256){
+        return balanceOf[asset][user];
+    }
+
+    function totalAssetsOfUser(IERC20 asset, address user) external returns (uint256){
+        return asset.balanceOf(user).add(balanceOf[asset][user]);
     }
 }

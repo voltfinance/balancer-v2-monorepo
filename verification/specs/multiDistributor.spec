@@ -1,4 +1,5 @@
 using SymbolicVault as Vault
+using SymbolicERC20A as SymbTokenA
 
 methods {    
     //getters for specific distribution
@@ -47,6 +48,7 @@ methods {
     balanceOf(address) returns uint256 => DISPATCHER(true)
     transfer(address, uint256) returns bool => DISPATCHER(true)
     transferFrom(address, address, uint256) returns bool => DISPATCHER(true)
+    getBalanceOf(address, address) returns uint256 => DISPATCHER(true)
     
     getUserUnclaimedTokensOfDistribution(bytes32, address, address) returns uint256
     getClaimableTokens(bytes32, address) returns uint256
@@ -749,10 +751,11 @@ rule permanentOwner(bytes32 distributionId, method f){
 }
 
 
+// total assets of a user (in Vault and in Tokens) plus unclaimed tokens should be equal to the total assets of a user after claim function is called
 rule claimCorrectnessCheckForOneUser(address dstToken, address sender, address recipient, bytes32 distributionId, uint256 index){
     env e;
-    uint256 assetBefore; uint256 internalBefore; uint256 taouBefore;
-    uint256 assetAfter; uint256 internalAfter; uint256 taouAfter;
+    uint256 vaultAndTokenBalanceBefore; 
+    uint256 vaultAndTokenBalanceAfter;
 
     bool toInternalBalance;
 
@@ -764,23 +767,23 @@ rule claimCorrectnessCheckForOneUser(address dstToken, address sender, address r
     require distributionIds.length == 1;
     require distributionIds[0] == distributionId;
 
-    assetBefore, internalBefore, taouBefore = Vault.totalAssetsOfUser(e, dstToken, recipient);
+    vaultAndTokenBalanceBefore = Vault.totalAssetsOfUser(e, dstToken, recipient);
 
     uint256 shouldBeClaimed = getClaimableTokens(e, distributionId, sender);
 
     claim(e, distributionIds, toInternalBalance, sender, recipient);
 
-    assetAfter, internalAfter, taouAfter = Vault.totalAssetsOfUser(e, dstToken, recipient);
+    vaultAndTokenBalanceAfter = Vault.totalAssetsOfUser(e, dstToken, recipient);
 
-    mathint all = taouBefore + shouldBeClaimed;
+    mathint all = vaultAndTokenBalanceBefore + shouldBeClaimed;
 
-    assert all == to_mathint(taouAfter), "total asssets are not the same";
+    assert all == to_mathint(vaultAndTokenBalanceAfter), "total asssets are not the same";
 
     // assert taouBefore < taouAfter, "claim decreased total balance of a recipient";
 }
 
 
-// getClaimableTokens are 0 after claim. check for no reclaim
+// There is no way to claim the same reward twice (check for no reclaim)
 rule noReclaim(address dstToken, address sender, address recipient, bytes32 distributionId, uint256 index){
     env e;
 
@@ -804,7 +807,8 @@ rule noReclaim(address dstToken, address sender, address recipient, bytes32 dist
 }
 
 
-rule itIsOnlyMyReward(address dstToken, bytes32 distributionId, uint256 index, address sender){
+// user A can't claim user B's reward 
+rule itIsOnlyMyReward(address dstToken, bytes32 distributionId, address sender){
     env e;
     address userA; address userB;
 
@@ -812,7 +816,7 @@ rule itIsOnlyMyReward(address dstToken, bytes32 distributionId, uint256 index, a
 
     bytes32[] distributionIds;
 
-    // require isSubscribed(distributionId, sender); require isSubscribed(distributionId, userB);
+    require isSubscribed(distributionId, sender); require isSubscribed(distributionId, userB);
     require getDistributionToken(distributionId) == dstToken;
     require distributionIds.length == 1;
     require distributionIds[0] == distributionId;
@@ -821,22 +825,233 @@ rule itIsOnlyMyReward(address dstToken, bytes32 distributionId, uint256 index, a
 
     uint256 userBShouldClaimBefore = getClaimableTokens(e, distributionId, userB);
 
-    claim(e, distributionIds, toInternalBalance, sender, userA);  // f(e2, args);
+    claim(e, distributionIds, toInternalBalance, sender, userA);
 
     uint256 userBShouldClaimAfter = getClaimableTokens(e, distributionId, userB);
 
-    assert userBShouldClaimBefore == userBShouldClaimAfter; // >=
+    assert userBShouldClaimBefore == userBShouldClaimAfter;
+}
+
+// check all function when getClaimableTokens increases
+rule noClaimIncrease(address dstToken, bytes32 distributionId, method f){
+    env e; env e2;
+    calldataarg args;
+    address userA; address userB;
+
+    // bool toInternalBalance;
+
+    bytes32[] distributionIds;
+
+    // require isSubscribed(distributionId, sender); require isSubscribed(distributionId, userB);
+    requireInvariant notSubscribedToNonExistingDistSet(distributionId, userB);
+    require getDistributionToken(distributionId) == dstToken;
+    require distributionIds.length == 1;
+    require distributionIds[0] == distributionId;
+    require e.block.timestamp == e2.block.timestamp;
+    // require sender != userB;
+    // require userA != userB;
+
+    uint256 userBShouldClaimBefore = getClaimableTokens(e, distributionId, userB);
+
+    f(e2, args);
+
+    uint256 userBShouldClaimAfter = getClaimableTokens(e, distributionId, userB);
+
+    assert userBShouldClaimBefore >= userBShouldClaimAfter; // >=
+}
+
+invariant correlationOfBalances(address recipient, env e)
+    SymbTokenA.balanceOf(e, recipient) == Vault.getBalanceOf(e, SymbTokenA, recipient)
+
+
+// 4 parts of a user balance:
+// 1) asset.balanceOf(user)
+// 2) balanceOf[asset][user]
+// 3) userStaking.balance 
+// 4) getClaimableTokens
+// on the same block
+// probably sender == user == recipient
+// solvency for 1 user
+rule solvencyForOneUser(address dstToken, address stkToken, bytes32 distributionId, method f) filtered { f -> !f.isView } {
+    env e; 
+    
+    address recipient; address sender;
+    uint256 amount; uint256 index;
+
+    require Vault != recipient;
+    require recipient != currentContract;
+    require sender == recipient;
+    require e.msg.sender == recipient;
+
+    // requireInvariant correlationOfBalances(recipient, e);
+    
+    require getDistributionToken(distributionId) == dstToken;
+    require getStakingToken(distributionId) == stkToken;
+    requireInvariant notSubscribedToNonExistingDistSet(distributionId, recipient);
+    
+    uint256 gtpsBefore = getGlobalTokensPerStake(distributionId);
+    uint256 claimableTokensBefore = getClaimableTokens(e, distributionId, sender);
+    uint256 userBalanceBefore = getUserBalance(stkToken, recipient);
+    uint256 vaultAndTokenBalanceBefore = Vault.totalAssetsOfUser(e, dstToken, recipient);
+    mathint combinedBalanceBefore = claimableTokensBefore + userBalanceBefore + vaultAndTokenBalanceBefore;
+
+    unstake(e, stkToken, amount, sender, recipient);
+    //solvencyHelper(f, e, distributionId, sender, recipient, dstToken, stkToken);
+
+    // requireInvariant correlationOfBalances(recipient, e);
+
+    uint256 gtpsAfter = getGlobalTokensPerStake(distributionId);
+    uint256 claimableTokensAfter = getClaimableTokens(e, distributionId, sender);
+    uint256 userBalanceAfter = getUserBalance(stkToken, recipient);
+    uint256 vaultAndTokenBalanceAfter = Vault.totalAssetsOfUser(e, dstToken, recipient);
+    mathint combinedBalanceAfter = claimableTokensAfter + userBalanceAfter + vaultAndTokenBalanceAfter;
+
+    assert combinedBalanceBefore == combinedBalanceAfter, "balances are not equal";
+}
+
+function solvencyHelper(method f, env e, bytes32 distributionId, address sender, address recipient, address distributionToken, address stakingToken){
+    uint256 duration; uint256 amount; uint256 deadline;
+    uint8 v; bytes32 r; bytes32 s;
+    bytes32[] distributionIds; address[] stakingTokens;
+    bool toInternalBalance; address callbackContract; bytes callbackData; 
+
+    require distributionIds.length == 1;
+    require distributionIds[0] == distributionId;
+
+    require stakingTokens.length == 1;
+    require stakingTokens[0] == stakingToken;
+
+	if (f.selector == createDistribution(address, address, uint256).selector) {
+        bytes32 distId = createDistribution(e, stakingToken, distributionToken, duration);
+        require distId == distributionId;
+	} else if (f.selector == setDistributionDuration(bytes32, uint256).selector) {
+        setDistributionDuration(e, distributionId, duration);
+	} else if (f.selector == fundDistribution(bytes32, uint256).selector) {
+		fundDistribution(e, distributionId, amount);
+	} else if (f.selector == subscribeDistributions(bytes32[]).selector) {
+        subscribeDistributions(e, distributionIds);
+	} else if (f.selector == unsubscribeDistributions(bytes32[]).selector) {
+		unsubscribeDistributions(e, distributionIds);
+    } else if (f.selector == stake(address, uint256, address, address).selector) {
+        stake(e, stakingToken, amount, sender, recipient); 
+    } else if (f.selector == stakeUsingVault(address, uint256, address, address).selector) {
+        stakeUsingVault(e, stakingToken, amount, sender, recipient);
+	} else if  (f.selector == stakeWithPermit(address, uint256, address, uint256, uint8, bytes32, bytes32).selector) {
+        stakeWithPermit(e, stakingToken, amount, recipient, deadline, v, r, s);
+	} else if (f.selector == unstake(address, uint256, address, address).selector) {
+		unstake(e, stakingToken, amount, sender, recipient);
+    } else if (f.selector == claim(bytes32[], bool, address, address).selector) {
+        claim(e, distributionIds, toInternalBalance, sender, recipient);
+    } else if (f.selector == claimWithCallback(bytes32[], address, address, bytes).selector) {
+        claimWithCallback(e, distributionIds, sender, callbackContract,callbackData);
+	} else if  (f.selector == exit(address[], bytes32[]).selector) {
+        exit(e, stakingTokens, distributionIds);
+	} else if (f.selector == exitWithCallback(address[], bytes32[], address, bytes).selector) {
+		exitWithCallback(e, stakingTokens, distributionIds, callbackContract, callbackData);
+	} else {
+        calldataarg args;
+        f(e, args);
+    }
 }
 
 
-// check all function when  getClaimableTokens increases
+rule howCanGetMore(address stkToken, bytes32 distributionId, address sender){
+    env e; env e2;
+    address userA; address userB;
 
-// check if user can get more by staking of other user, call with new env
+    uint256 amount; uint256 index;
+
+    bool toInternalBalance;
+
+    bytes32[] distributionIds;
+
+    require e.block.timestamp == e2.block.timestamp; // violation without it. in general 1 or 2 envs are the same with this require because from env we only need block.timestamp
+    require getStakingToken(distributionId) == stkToken;
+    require distributionIds.length == 1;
+    require distributionIds[0] == distributionId;
+    require sender != userB;
+    require userA != userB;
+
+    uint256 userBShouldClaimBefore = getClaimableTokens(e, distributionId, userB);
+
+    stake(e2, stkToken, amount, sender, userA);
+
+    uint256 userBShouldClaimAfter = getClaimableTokens(e, distributionId, userB);
+
+    assert userBShouldClaimBefore == userBShouldClaimAfter;
+}
+
+// The order of actions in the same block should have no effect on the state of the user 
+// Sub/Stake    Unsub/Unstake   Exit/Unstake_Claim      setDistributionDuration/fundDistribution
+rule orderMakesNoDifferenceOnOneBlock(bytes32 distributionId, method f){
+    bytes32[] distributionIds;
+    address stakingToken; address distributionToken; address sender; address recipient;
+    uint256 amount;
+    env e;
+
+    require sender == recipient;
+    require e.msg.sender == recipient;
+    require distributionIds[0] == distributionId;
+    require getStakingToken(distributionId) == stakingToken;
+    require getDistributionToken(distributionId) == distributionToken;
+
+    storage initialStorage = lastStorage;
+
+    stake(e, stakingToken, amount, sender, recipient);
+    subscribeDistributions(e, distributionIds);
+
+    uint256 userBalanceFirst = getUserBalance(stakingToken, sender);
+    uint256 distTotalSupplyFirst = getTotalSupply(distributionId);
+    uint256 vaultAndTokenBalanceFirst = Vault.totalAssetsOfUser(e, distributionToken, recipient);
+    uint256 getGTPSFirst = getGlobalTokensPerStake(distributionId);
+    uint256 getUTPSFirst = getUserTokensPerStake(distributionId, stakingToken, recipient);
+    bool isSubscribedFirst = isSubscribed(distributionId, sender);
+
+    subscribeDistributions(e, distributionIds) at initialStorage;
+    stake(e, stakingToken, amount, sender, recipient);
+
+    uint256 userBalanceSecond = getUserBalance(stakingToken, sender);
+    uint256 distTotalSupplySecond = getTotalSupply(distributionId);
+    uint256 vaultAndTokenBalanceSecond = Vault.totalAssetsOfUser(e, distributionToken, recipient);
+    uint256 getGTPSSecond = getGlobalTokensPerStake(distributionId);
+    uint256 getUTPSSecond = getUserTokensPerStake(distributionId, stakingToken, recipient);
+    bool isSubscribedSecond = isSubscribed(distributionId, sender);
+
+    assert  userBalanceFirst == userBalanceSecond
+                && distTotalSupplyFirst == distTotalSupplySecond 
+                && vaultAndTokenBalanceFirst == vaultAndTokenBalanceSecond 
+                && getGTPSFirst == getGTPSSecond
+                && getUTPSFirst == getUTPSSecond
+                && isSubscribedFirst == isSubscribedSecond, "states are different";
+}
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////    Ghost    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
+
+// ghost balanceOfVault(address, address) returns uint256 {
+//     init_state axiom forall address token. forall address user. balanceOfVault(token, user) == 0;
+// }
+// 
+// ghost balanceOfToken(address) returns uint256 {
+//     init_state axiom forall address user. balanceOfToken(user) == 0;
+// }
+// 
+// 
+// hook Sstore Vault.balanceOf[KEY address token][KEY address user] uint256 amount STORAGE{
+//     havoc balanceOfVault assuming forall address t. forall address u. ((t == token && u == user) => balanceOfVault@new(t, u) == amount)
+//                                                     && ((t != token || u != user) => balanceOfVault@new(t, u) == balanceOfVault@old(t, u));
+// }
+// 
+// hook Sstore SymbTokenA._balances[KEY address user] uint256 amount STORAGE{
+//     havoc balanceOfToken assuming forall address u. (u == user => balanceOfToken@new(u) == amount)
+//                                                     && (u != user => balanceOfToken@new(u) == balanceOfToken@old(u));
+// }
+
+// invariant test1(address token, address user)
+   //  balanceOfVault(token, user) == balanceOfToken
+
 /*
 ghost userSubscribed(address, address, bytes32) returns bool {
 	init_state axiom forall address token. forall address user. forall bytes32 distributionId. userSubscribed(token, user, distributionId) == false;
