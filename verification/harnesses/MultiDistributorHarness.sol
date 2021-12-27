@@ -63,9 +63,12 @@ contract MultiDistributorHarness is MultiDistributor {
 
     function getUserSubscribedDistributionIndexById(IERC20 stakingToken, address sender, bytes32 distId) public view returns (uint256 index){
         index = _userStakings[stakingToken][sender].subscribedDistributions.rawIndexOf(distId);
-        require(index<_userStakings[stakingToken][sender].subscribedDistributions.length());
         return index;
     }
+
+    // function getUserSetLength(IERC20 stakingToken, address sender) public view returns (uint256){
+    //     return _userStakings[stakingToken][sender].subscribedDistributions.length();
+    // }
 
     function getDistIdContainedInUserSubscribedDistribution(IERC20 stakingToken, address sender, bytes32 distId) public view returns (bool isContained){
         isContained = _userStakings[stakingToken][sender].subscribedDistributions.contains(distId);
