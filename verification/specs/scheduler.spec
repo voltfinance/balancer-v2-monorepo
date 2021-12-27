@@ -59,8 +59,22 @@ function requireScheduleIdCorrelatedWithDuo(bytes32 scheduleId, bytes32 _distId,
 ///////////////////////////////////////    Michael    ///////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
+// V@V - distributionId, startTime, amount are either initialized (!=0) or uninitialized (0) simultaneously
 invariant scheduleExistInitializedParams(bytes32 scheduleId)
         (getScheduledDistributionId(scheduleId) == 0 <=> getScheduledStartTime(scheduleId) == 0) &&
         (getScheduledStartTime(scheduleId) == 0 <=> getScheduledAmount(scheduleId) == 0) &&
         (getScheduledAmount(scheduleId) == 0 <=> getScheduledStatus(scheduleId) == 0)
+
+
+// F@F - fails on certoraFall back in preserved block - If duration/owner/staking_token/distribution_token are not set, the distribution does not exist
+invariant conditionsScheduleNotExist(bytes32 scheduleId)
+        getScheduledStatus(scheduleId) == 0 <=> distScheduleNotExist(scheduleId)
+
+
+// // The system is in either of the 4 defined states. It cannot be in any other state, nor in more than 1 state at the same time.
+// invariant oneStateAtATime(bytes32 scheduleId, env e)
+//         ((distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
+//         (!distScheduleNotExist(scheduleId) && distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
+//         (!distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
+//         (!distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && distCancelled(scheduleId, e)))
 
