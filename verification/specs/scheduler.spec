@@ -71,10 +71,10 @@ invariant conditionsScheduleNotExist(bytes32 scheduleId)
         getScheduledStatus(scheduleId) == 0 <=> distScheduleNotExist(scheduleId)
 
 
-// // The system is in either of the 4 defined states. It cannot be in any other state, nor in more than 1 state at the same time.
-// invariant oneStateAtATime(bytes32 scheduleId, env e)
-//         ((distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
-//         (!distScheduleNotExist(scheduleId) && distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
-//         (!distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
-//         (!distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && distCancelled(scheduleId, e)))
+// The system is in either of the 4 defined states. It cannot be in any other state, nor in more than 1 state at the same time.
+invariant oneStateAtATime(bytes32 scheduleId, env e)
+        ((distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
+        (!distScheduleNotExist(scheduleId) && distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
+        (!distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
+        (!distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && distCancelled(scheduleId, e)))
 
