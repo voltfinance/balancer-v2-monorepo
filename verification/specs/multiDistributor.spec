@@ -158,9 +158,9 @@ function callFundDistributionWithSpecificDistId(method f, env e, bytes32 distId)
     }
 }
 
-function callAllFunctionsWithParameters(method f, env e, bytes32 distributionId, bytes32[] distributionIds){
-    address stakingToken; address distributionToken; uint256 duration; uint256 amount;
-    address sender; address recipient; uint256 deadline; uint8 v; bytes32 r; bytes32 s;
+function callAllFunctionsWithParameters(method f, env e, bytes32 distributionId, bytes32[] distributionIds, address stakingToken, address recipient){
+    address distributionToken; uint256 duration; uint256 amount;
+    address sender; uint256 deadline; uint8 v; bytes32 r; bytes32 s;
     bool toInternalBalance; address callbackContract; bytes callbackData; address[] stakingTokens;
 
 	if (f.selector == createDistribution(address, address, uint256).selector) {
@@ -178,7 +178,7 @@ function callAllFunctionsWithParameters(method f, env e, bytes32 distributionId,
         stake(e, stakingToken, amount, sender, recipient); 
     } else if (f.selector == stakeUsingVault(address, uint256, address, address).selector) {
         stakeUsingVault(e, stakingToken, amount, sender, recipient);
-	} else if  (f.selector == stakeWithPermit(address, uint256, address, uint256, uint8, bytes32, bytes32).selector) {
+	} else if (f.selector == stakeWithPermit(address, uint256, address, uint256, uint8, bytes32, bytes32).selector) {
         stakeWithPermit(e, stakingToken, amount, recipient, deadline, v, r, s);
 	} else if (f.selector == unstake(address, uint256, address, address).selector) {
 		unstake(e, stakingToken, amount, sender, recipient);
@@ -186,7 +186,7 @@ function callAllFunctionsWithParameters(method f, env e, bytes32 distributionId,
         claim(e, distributionIds, toInternalBalance, sender, recipient);
     } else if (f.selector == claimWithCallback(bytes32[], address, address, bytes).selector) {
         claimWithCallback(e, distributionIds, sender, callbackContract,callbackData);
-	} else if  (f.selector == exit(address[], bytes32[]).selector) {
+	} else if (f.selector == exit(address[], bytes32[]).selector) {
         exit(e, stakingTokens, distributionIds);
 	} else if (f.selector == exitWithCallback(address[], bytes32[], address, bytes).selector) {
 		exitWithCallback(e, stakingTokens, distributionIds, callbackContract, callbackData);
@@ -213,7 +213,7 @@ function hashUniquness(bytes32 distId1, address stakingToken1, address distribut
 //////////////////////////////////////    Invariants    /////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-// V@V - _indexes mapping and _values array are correlated in the enumerable set
+// P@P - _indexes mapping and _values array are correlated in the enumerable set
 invariant enumerableSetIsCorrelated(address stakingToken, address user, uint256 index, bytes32 distId)
         // ID in mapping declare "not contained", then the array at the index is not distId
         (getUserSubscribedDistributionIndexById(stakingToken, user, distId) == max_uint256 => 
@@ -229,12 +229,12 @@ invariant enumerableSetIsCorrelated(address stakingToken, address user, uint256 
             }
         }
 
-// V@V - Might be vacious - checks the correlation of the set and _userStaking mapping. If the distId is in the set, the stakingToken associated with this distId is the same as the stakingToken in the mapping.
+// P@P - checks the correlation of the set and _userStaking mapping. If the distId is in the set, the stakingToken associated with this distId is the same as the stakingToken in the mapping.
 // If the stakingToken associated to the distId is not the same as the stakingToken leading to the set in the mapping, then the distId shouldn't be in the set.
 invariant _userStakingMappingAndSetAreCorrelated(bytes32 distId, address stakingToken, address user)
-        // (stakingToken == 0 => !getDistIdContainedInUserSubscribedDistribution(stakingToken, user, distId)) &&
-        (getDistIdContainedInUserSubscribedDistribution(stakingToken, user, distId) => 
-                (getStakingToken(distId) == stakingToken) && (stakingToken != 0))
+        (stakingToken == 0 => !getDistIdContainedInUserSubscribedDistribution(stakingToken, user, distId)) &&
+        (stakingToken != 0 => (getDistIdContainedInUserSubscribedDistribution(stakingToken, user, distId) => 
+                getStakingToken(distId) == stakingToken))
         {
             preserved createDistribution(address stk2, address dst2, uint256 dur2) with (env e)
             {
@@ -275,19 +275,19 @@ invariant notSubscribedToNonExistingDistSet(bytes32 distId, address user)
         }
  
 
-// V@V - If duration/owner/staking_token/distribution_token are not set, the distribution does not exist
+// F@F - If duration/owner/staking_token/distribution_token are not set, the distribution does not exist
 invariant conditionsDistNotExist(bytes32 distId)
         getStakingToken(distId) == 0 <=> distNotExist(distId)
         {
             preserved with (env e)
             {
-                address stakingToken; address user; uint256 index;
-                address _stakingToken; address _distributionToken; address _owner;
-                requireDistIdCorrelatedWithTrio(distId, _stakingToken, _distributionToken, _owner);
+                address stakingToken; address user; uint256 index; address distributionToken;
+                requireDistIdCorrelatedWithTrio(distId, stakingToken, distributionToken, user);
                 requireInvariant distExistInitializedParams(distId, e);
                 requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distId);
                 requireInvariant _userStakingMappingAndSetAreCorrelated(distId, stakingToken, user);
                 requireInvariant notSubscribedToNonExistingDistSet(distId, user);
+                // require distId != 0;
             }
         }
 
@@ -323,7 +323,7 @@ invariant distActivatedAtLeastOnceParams(bytes32 distId, env e)
         }
 
 
-// V@V - The system is in either of the 4 defined states. It cannot be in any other state, nor in more than 1 state at the same time.
+// F@F - The system is in either of the 4 defined states. It cannot be in any other state, nor in more than 1 state at the same time.
 invariant oneStateAtATime(bytes32 distId, env e)
         ((distNotExist(distId) && !distNew(distId) && !distActive(distId, e) && !distFinished(distId, e)) ||
         (!distNotExist(distId) && distNew(distId) && !distActive(distId, e) && !distFinished(distId, e)) ||
@@ -334,9 +334,8 @@ invariant oneStateAtATime(bytes32 distId, env e)
             {
                 require e.block.timestamp == e2.block.timestamp;
                 requireEnvValuesNotZero(e2);
-                address stakingToken; address user; uint256 index;
-                address _stakingToken; address _distributionToken; address _owner;
-                requireDistIdCorrelatedWithTrio(distId, _stakingToken, _distributionToken, _owner);
+                address stakingToken; address user; uint256 index; address distributionToken;
+                requireDistIdCorrelatedWithTrio(distId, stakingToken, distributionToken, user);
                 requireInvariant distExistInitializedParams(distId, e2);
                 requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distId);
                 requireInvariant _userStakingMappingAndSetAreCorrelated(distId, stakingToken, user);
@@ -428,43 +427,21 @@ invariant validityOfLastTimePaymentApplicable(bytes32 distributionId, env e)
 // F@F - fails on stake & unstake - Creating a dist bringing us from the state distNotExist to distNew (no other function does that). All other functions will leave us in distNotExist state.
 // @note that we dont check createDistribution for a distribution_ID != distId, assuming that any operation on other dists will not effect this one.
 rule transition_NotExist_To_DistNew(bytes32 distId) {
-    method f; env e; calldataarg args;
-    /*
-        require (getStakingToken(distId) == 0 &&
-        getDistributionToken(distId) == 0 &&
-        getOwner(distId) == 0 &&
-        getTotalSupply(distId) == 0 &&
-        getDuration(distId) == 0 &&
-        getPeriodFinish(distId) == 0 &&
-        getPaymentRate(distId) == 0 &&
-        getLastUpdateTime(distId) == 0 &&
-        getGlobalTokensPerStake(distId) == 0);
-
-        require (getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distId <=> 
-                    getUserSubscribedDistributionIndexById(stakingToken, user, distId) == index);
-
-        require (getDistIdContainedInUserSubscribedDistribution(stakingToken, user, distId => 
-                ((getStakingToken(distId) == stakingToken) && (stakingToken != 0)))
-
-    */
+    method f; env e; calldataarg args; bytes32[] distIds;
 
     require distNotExist(distId);
     requireEnvValuesNotZero(e);
     
-    address stakingToken; address user; uint256 index;
-    // bytes32 distId2; address stk2; address dst2; address usr2;
-
-    address _stakingToken; address _distributionToken; address _owner;
-    requireDistIdCorrelatedWithTrio(distId, _stakingToken, _distributionToken, _owner);
+    address stakingToken; address user; uint256 index; address distributionToken;
+    requireDistIdCorrelatedWithTrio(distId, stakingToken, distributionToken, user);
     requireInvariant distExistInitializedParams(distId, e);
+    // require index == 0;
     requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distId);
     requireInvariant _userStakingMappingAndSetAreCorrelated(distId, stakingToken, user);
     requireInvariant notSubscribedToNonExistingDistSet(distId, user);
 
-    // hashUniquness(distId, stakingToken, distributionToken, user, distId2, stk2, dst2, usr2);
-
     // calling all functions, making sure the created distr-ibution id is the distId of interest
-    callCreateDistributionWithSpecificDistId(f, e, distId);
+    callAllFunctionsWithParameters(f, e, distId, distIds, stakingToken, user);
     assert f.selector != createDistribution(address, address, uint256).selector => distNotExist(distId), "distribution changed state without creating a distribution";
     assert f.selector == createDistribution(address, address, uint256).selector => distNew(distId), "distribution did not change due to call to createDistribution function";
 }
@@ -559,7 +536,7 @@ rule noTwoTripletsAreTheSame(env e, bytes32 distId1, bytes32 distId2){
 // When calling a function on a specific distribution (e.g. subscribe, set duration, fund, etc.), no other distributions are being affected
 // exitWithCallback filtered out due to timeout
 rule distributionsAreIndependent(method f, bytes32 distId1, bytes32 distId2) {
-    env e1; env e2; bytes32[] distIdArray;
+    env e1; env e2; bytes32[] distIdArray; address stkToken; address recipient;
     address _sToken = getStakingToken(distId1);
     address _dToken = getDistributionToken(distId1);
     address _owner = getOwner(distId1);
@@ -572,7 +549,7 @@ rule distributionsAreIndependent(method f, bytes32 distId1, bytes32 distId2) {
 
     require distId2 != distId1;
     require distIdArray.length <= 1 && distIdArray[0] != distId1;
-    callAllFunctionsWithParameters(f, e2, distId2, distIdArray);
+    callAllFunctionsWithParameters(f, e2, distId2, distIdArray, stkToken, recipient);
 
     address sToken_ = getStakingToken(distId1);
     address dToken_ = getDistributionToken(distId1);
