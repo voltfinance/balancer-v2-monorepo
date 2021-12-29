@@ -39,6 +39,7 @@ definition distCancelled(bytes32 scheduleId, env e) returns bool =
     getScheduledDistributionId(scheduleId) != 0 &&
     (getScheduledStartTime(scheduleId) != 0 && getScheduledStartTime(scheduleId) > e.block.timestamp) &&
     getScheduledStatus(scheduleId) == 3;
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Helpers    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,8 +57,23 @@ function requireScheduleIdCorrelatedWithDuo(bytes32 scheduleId, bytes32 _distId,
     require (getScheduleId(_distId, _startTime) == scheduleId && (getScheduledDistributionId(scheduleId) == _distId && getScheduledStartTime(scheduleId) == _startTime));
 }
 
+function callAllFunctionsWithParameters(method f, env e, bytes32 scheduleId, bytes32[] scheduleIds){
+    bytes32 distId; uint256 startTime; uint256 amount;
+    if (f.selector == scheduleDistribution(bytes32, uint256, uint256).selector) {
+        bytes32 schedId = scheduleDistribution(e, distId, amount, startTime);
+        require schedId == scheduleId;
+	} else if (f.selector == startDistributions(bytes32[]).selector) {
+        startDistributions(e, scheduleIds);
+	} else if (f.selector == cancelDistribution(bytes32).selector) {
+		cancelDistribution(e, scheduleId);
+    } else {
+        calldataarg args;
+        f(e, args);
+    }
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////    Michael    ///////////////////////////////////////
+/////////////////////////////////////    Invariants    //////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 // V@V - distributionId, startTime, amount are either initialized (!=0) or uninitialized (0) simultaneously
@@ -68,27 +84,22 @@ invariant scheduleExistInitializedParams(bytes32 scheduleId)
             filtered { f -> f.selector != certorafallback_0().selector }
 
 
-// F@F - fails on certoraFall back in preserved block - If duration/owner/staking_token/distribution_token are not set, the distribution does not exist
+// V@V - If duration/owner/staking_token/distribution_token are not set, the distribution does not exist
 invariant conditionsScheduleNotExist(bytes32 scheduleId)
         getScheduledStatus(scheduleId) == 0 <=> distScheduleNotExist(scheduleId)
             filtered { f -> f.selector != certorafallback_0().selector }
 
 
-// The system is in either of the 4 defined states. It cannot be in any other state, nor in more than 1 state at the same time.
+// V@V - The system is in either of the 4 defined states. It cannot be in any other state, nor in more than 1 state at the same time.
 invariant oneStateAtATime(bytes32 scheduleId, env e)
         ((distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
         (!distScheduleNotExist(scheduleId) && distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
         (!distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
         (!distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && distCancelled(scheduleId, e)))
             filtered { f -> f.selector != certorafallback_0().selector }
-
-
-invariant scheduleForFuture(bytes32 scheduleId, env e)
-        distScheduleCreated(scheduleId, e) => getScheduledStartTime(scheduleId) < e.block.timestamp
-            filtered { f -> f.selector != certorafallback_0().selector }
-        { 
+        {
             preserved with (env e2)
-            { 
+            {
                 require e.block.timestamp == e2.block.timestamp;
             }
         }
@@ -124,6 +135,31 @@ rule permanentValues(bytes32 scheduleId, env e, method f) filtered { f -> f.sele
     uint256 startTimeAfter = getScheduledStartTime(scheduleId);
 
     assert amountBefore == amountAfter && startTimeBefore == startTimeAfter, "values has changed";
+}
+
+
+// V@V - When calling a function on a specific schedule (start, cancel, and create), no other schedules are being affected
+rule schedulesAreIndependent(method f, bytes32 scheduleId1, bytes32 scheduleId2) {
+    env e1; env e2; bytes32[] scheduleIdArray;
+    bytes32 _distributionId = getScheduledDistributionId(scheduleId1);
+    uint256 _startTime = getScheduledStartTime(scheduleId1);
+    uint256 _amount = getScheduledAmount(scheduleId1);
+    uint8 _status = getScheduledStatus(scheduleId1);
+
+    require scheduleId2 != scheduleId1;
+    require scheduleIdArray.length <= 1 && scheduleIdArray[0] != scheduleId1;
+    callAllFunctionsWithParameters(f, e2, scheduleId2, scheduleIdArray);
+
+    bytes32 distributionId_ = getScheduledDistributionId(scheduleId1);
+    uint256 startTime_ = getScheduledStartTime(scheduleId1);
+    uint256 amount_ = getScheduledAmount(scheduleId1);
+    uint8 status_ = getScheduledStatus(scheduleId1);
+
+    assert _distributionId == distributionId_, "distribution id changed";
+    assert _startTime == startTime_, "start time changed";
+    assert _amount == amount_, "amount changed";
+    assert _status == status_, "status changed";
+    // assert ((totSupply_ == _totSupply) || (nonSpecificDistribution(f) <=> (totSupply_ != _totSupply))), "totSupply changed not due to stake/unstake/exit";
 }
 
 
