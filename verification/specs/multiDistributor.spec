@@ -348,8 +348,7 @@ invariant oneStateAtATime(bytes32 distId, env e)
         }
 
 
-// CLEANED
-// lastUpdateTime can't be in the future
+// V@V - lastUpdateTime can't be in the future
 invariant lastUpdateTimeNotInFuture(env e, bytes32 distributionId)
     getLastUpdateTime(distributionId) <= e.block.timestamp
     {
@@ -360,14 +359,12 @@ invariant lastUpdateTimeNotInFuture(env e, bytes32 distributionId)
     }
 
 
-// CLEANED
-// lastUpdateTime cannot be greater than periodFinish
+// V@V - lastUpdateTime cannot be greater than periodFinish
 invariant getLastUpdateTimeLessThanFinish(bytes32 distributionId)
     getLastUpdateTime(distributionId) <= getPeriodFinish(distributionId)
 
 
-// CLEANED
-// _lastTimePaymentApplicable is always greater or equal than lastUpdateTime to avoid underflow
+// V@V - _lastTimePaymentApplicable is always greater or equal than lastUpdateTime to avoid underflow
 invariant validityOfLastTimePaymentApplicable(bytes32 distributionId, env e)
     getLastUpdateTime(distributionId) <= _lastTimePaymentApplicableHarness(e, distributionId)
     {
@@ -378,8 +375,7 @@ invariant validityOfLastTimePaymentApplicable(bytes32 distributionId, env e)
     }
 
 
-// CLEANED
-// The global token per stake(gtps) is always greater or equal to the user token per stake(utps) 
+// V@V - The global token per stake(gtps) is always greater or equal to the user token per stake(utps) 
 invariant gtpsGreaterOrEqualUtps(bytes32 distributionId, address stakingToken, address sender)
         getGlobalTokensPerStake(distributionId) >= getUserTokensPerStake(distributionId, stakingToken, sender)
 
@@ -388,7 +384,7 @@ invariant gtpsGreaterOrEqualUtps(bytes32 distributionId, address stakingToken, a
 // The balance of subscribed and staked user should be less than or equal to the totalSupply of a distribution
 invariant userSubStakeCorrelationWithTotalSupply(bytes32 distributionId, address user, address token, uint256 index, env e)
     (getDistIdContainedInUserSubscribedDistribution(token, user, distributionId) && getUserBalance(token, user) > 0)
-            => (getUserBalance(token, user) <= getTotalSupply(distributionId)) filtered { f -> f.selector != certorafallback_0().selector}
+            => (getUserBalance(token, user) <= getTotalSupply(distributionId)) filtered { f -> f.selector != certorafallback_0().selector }
     { 
         preserved with (env e2) 
         {
@@ -405,15 +401,13 @@ invariant userSubStakeCorrelationWithTotalSupply(bytes32 distributionId, address
             require getStakingToken(distributionId) == token;
         }
         preserved stake(address stakingToken, uint256 amount, address sender, address recipient) with (env e4)
-        {
+        {   
             require user == sender;
             require getStakingToken(distributionId) == token;
             require stakingToken == token;
             require index == 0;
-            requireInvariant notSubscribedToNonExistingDistSet(distributionId, user);
-            requireInvariant enumerableSetIsCorrelated(token, user, index, distributionId);
-            requireInvariant _userStakingMappingAndSetAreCorrelated(distributionId, stakingToken, user);
-            require getDistIdContainedInUserSubscribedDistribution(token, sender, distributionId);
+            require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  &&
+                            getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
         }
         preserved stakeUsingVault(address stakingToken, uint256 amount, address sender, address recipient) with (env e5)
         {
@@ -421,8 +415,8 @@ invariant userSubStakeCorrelationWithTotalSupply(bytes32 distributionId, address
             require getStakingToken(distributionId) == token;
             require stakingToken == token;
             require index == 0;
-            requireInvariant notSubscribedToNonExistingDistSet(distributionId, user);
-            requireInvariant enumerableSetIsCorrelated(token, user, index, distributionId);
+            require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  &&
+                            getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
         }
         preserved stakeWithPermit(address stakingToken, uint256 amount, address sender, uint256 deadline, uint8 v, bytes32 r, bytes32 s) with (env e6)
         {
@@ -430,8 +424,8 @@ invariant userSubStakeCorrelationWithTotalSupply(bytes32 distributionId, address
             require getStakingToken(distributionId) == token;
             require stakingToken == token;
             require index == 0;
-            requireInvariant notSubscribedToNonExistingDistSet(distributionId, user);
-            requireInvariant enumerableSetIsCorrelated(token, user, index, distributionId);
+            require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  &&
+                            getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
         }
         preserved unstake(address stakingToken, uint256 amount, address sender, address recipient) with (env e7)
         {
@@ -577,6 +571,7 @@ rule noTwoTripletsAreTheSame(env e, bytes32 distId1, bytes32 distId2){
     assert ((getStakingToken(distId1) != getStakingToken(distId2)) || (getDistributionToken(distId1) != getDistributionToken(distId2)) || (getOwner(distId1) != getOwner(distId2))), "all 3 fields are the same";
 }
 
+
 // V@V - Very strange that it doesnt need any assumptions. Fails on fallback on the assert totsupply - 
 // When calling a function on a specific distribution (e.g. subscribe, set duration, fund, etc.), no other distributions are being affected
 // exitWithCallback filtered out due to timeout
@@ -636,7 +631,6 @@ rule gtpsMonotonicity(bytes32 distributionId, method f){
 // CLEANED
 // userTokensPerStake is non-decreasing 
 rule utpsMonotonicity(bytes32 distributionId, method f, address stakingToken, address user, uint256 index) filtered { f -> f.selector != certorafallback_0().selector} {
-        requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distributionId);
         requireInvariant gtpsGreaterOrEqualUtps(distributionId, stakingToken, user);
 
         uint256 utpsBefore = getUserTokensPerStake(distributionId, stakingToken, user);
@@ -693,18 +687,11 @@ rule balanceOfChange(address userA, address userB, address stakingToken,  method
 rule integrityBalanceOfTotalSupply(address user, address distributionToken, address stakingToken, bytes32 distributionId, uint256 index, method f, env e) filtered { f -> f.selector != certorafallback_0().selector} {
     require e.msg.sender == user;
     require getStakingToken(distributionId) == stakingToken;
-    require getDistributionToken(distributionId) == distributionToken; // 1
-    requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distributionId);
+    require getDistributionToken(distributionId) == distributionToken;
     requireInvariant userSubStakeCorrelationWithTotalSupply(distributionId, user, stakingToken, index, e);
-    requireInvariant _userStakingMappingAndSetAreCorrelated(distributionId, stakingToken, user); // 2
     
 	uint256 balanceABefore = getUserBalance(stakingToken, user);
 	uint256 totalSupplyBefore = getTotalSupply(distributionId);
-
-    requireInvariant notSubscribedToNonExistingDistSet(distributionId, user);     // 1
-
-    // calldataarg args;
-    // f(e, args);
 
 	integrityHelper(f, e, distributionId, user, distributionToken, stakingToken); 
 
@@ -717,49 +704,35 @@ rule integrityBalanceOfTotalSupply(address user, address distributionToken, addr
 
 
 function integrityHelper(method f, env e, bytes32 distributionId, address user, address distributionToken, address stakingToken){
-    uint256 duration; uint256 amount; uint256 deadline;
-    uint8 v; bytes32 r; bytes32 s;
-    bytes32[] distributionIds; address[] stakingTokens;
-    bool toInternalBalance; address callbackContract; bytes callbackData; 
-
+    uint256 amount; uint256 deadline; uint8 v; 
+    bytes32[] distributionIds; 
+    bytes32 r; bytes32 s; 
+    bytes callbackData; 
+    address[] stakingTokens;
+    address callbackContract; 
+    
     require distributionIds.length == 1;
     require distributionIds[0] == distributionId;
 
     require stakingTokens.length == 1;
     require stakingTokens[0] == stakingToken;
 
-	if (f.selector == createDistribution(address, address, uint256).selector) {
-        bytes32 distId = createDistribution(e, stakingToken, distributionToken, duration);
-        require distId == distributionId;
-	} else if (f.selector == setDistributionDuration(bytes32, uint256).selector) {
-        setDistributionDuration(e, distributionId, duration);
-	} else if (f.selector == fundDistribution(bytes32, uint256).selector) {
-		fundDistribution(e, distributionId, amount);
-	} else if (f.selector == subscribeDistributions(bytes32[]).selector) {
-        subscribeDistributions(e, distributionIds);
-	} else if (f.selector == unsubscribeDistributions(bytes32[]).selector) {
-		unsubscribeDistributions(e, distributionIds);
-    } else if (f.selector == stake(address, uint256, address, address).selector) {
-        require isSubscribed(distributionId, user);
+    uint256 index;
+    require index == 0;
+    require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  
+                && getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
+
+	if (f.selector == stake(address, uint256, address, address).selector) {
         stake(e, stakingToken, amount, user, user); 
     } else if (f.selector == stakeUsingVault(address, uint256, address, address).selector) {
-        require isSubscribed(distributionId, user);
         stakeUsingVault(e, stakingToken, amount, user, user);
 	} else if  (f.selector == stakeWithPermit(address, uint256, address, uint256, uint8, bytes32, bytes32).selector) {
-        require isSubscribed(distributionId, user);
         stakeWithPermit(e, stakingToken, amount, user, deadline, v, r, s);
 	} else if (f.selector == unstake(address, uint256, address, address).selector) {
-        require isSubscribed(distributionId, user);
 		unstake(e, stakingToken, amount, user, user);
-    } else if (f.selector == claim(bytes32[], bool, address, address).selector) {
-        claim(e, distributionIds, toInternalBalance, user, user);
-    } else if (f.selector == claimWithCallback(bytes32[], address, address, bytes).selector) {
-        claimWithCallback(e, distributionIds, user, callbackContract, callbackData);
-	} else if  (f.selector == exit(address[], bytes32[]).selector) {
-        require isSubscribed(distributionId, user);
+    }  else if  (f.selector == exit(address[], bytes32[]).selector) {
         exit(e, stakingTokens, distributionIds);
 	} else if (f.selector == exitWithCallback(address[], bytes32[], address, bytes).selector) {
-        require isSubscribed(distributionId, user);
 		exitWithCallback(e, stakingTokens, distributionIds, callbackContract, callbackData);
 	} else {
         calldataarg args;
@@ -769,7 +742,7 @@ function integrityHelper(method f, env e, bytes32 distributionId, address user, 
 
 
 // CLEANED
-// The durtion cannot be changed if distribution is active
+// The duration cannot be changed if distribution is active
 rule unchangedDurationDuringActiveDistribution(bytes32 distributionId, method f, env e){
     require distActive(distributionId, e);
 
@@ -826,7 +799,7 @@ rule claimCorrectnessCheckForOneUser(address dstToken, address sender, address r
 
 
 // CLEANED
-// There is no way to claim the same reward twice (check for no reclaim)
+// There is no way to claim reward twice at the same block timestamp (check for no reclaim)
 rule noReclaim(address dstToken, address sender, address recipient, bytes32 distributionId, uint256 index){
     env e;
     bool toInternalBalance;

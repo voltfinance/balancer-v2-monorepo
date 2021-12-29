@@ -9,6 +9,12 @@ methods {
     getScheduleId(bytes32, uint256) returns bytes32 envfree
     scheduleDistribution(bytes32, uint256, uint256) returns bytes32
     startDistributions(bytes32[])
+    cancelDistribution(bytes32)
+
+    balanceOf(address) returns uint256 => DISPATCHER(true)
+    transfer(address, uint256) returns bool => DISPATCHER(true)
+    transferFrom(address, address, uint256) returns bool => DISPATCHER(true)
+    approve(address, uint256) returns (bool) => DISPATCHER(true)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -22,11 +28,13 @@ definition distScheduleNotExist(bytes32 scheduleId) returns bool =
     getScheduledAmount(scheduleId) == 0 &&
     getScheduledStatus(scheduleId) == 0;
 
+
 // schedule Created, the distribution scheduled but not yet started - 3 parameters are non-zero, status == 1.
 definition distScheduleCreated(bytes32 scheduleId, env e) returns bool =
     getScheduledDistributionId(scheduleId) != 0 &&
     (getScheduledStartTime(scheduleId) != 0 && getScheduledStartTime(scheduleId) > e.block.timestamp) &&
     getScheduledStatus(scheduleId) == 1;
+
 
 // Distribution Started, the scheduled distribution started - 3 parameters are non-zero, status == 2.
 definition distStarted(bytes32 scheduleId, env e) returns bool =
@@ -34,15 +42,18 @@ definition distStarted(bytes32 scheduleId, env e) returns bool =
     (getScheduledStartTime(scheduleId) != 0 && getScheduledStartTime(scheduleId) <= e.block.timestamp) &&
     getScheduledStatus(scheduleId) == 2;
 
+
 // Distribution Started, the scheduled distribution started - 3 parameters are non-zero, status == 2.
 definition distCancelled(bytes32 scheduleId, env e) returns bool =
     getScheduledDistributionId(scheduleId) != 0 &&
     (getScheduledStartTime(scheduleId) != 0 && getScheduledStartTime(scheduleId) > e.block.timestamp) &&
     getScheduledStatus(scheduleId) == 3;
 
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Helpers    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
+
 
 function requireEnvValuesNotZero(env e){
     require e.msg.sender != 0;
@@ -50,12 +61,14 @@ function requireEnvValuesNotZero(env e){
     require e.block.timestamp != 0;
 }
 
+
 // assuming the hash is deterministic, and correlates the arg duo properly
 function requireScheduleIdCorrelatedWithDuo(bytes32 scheduleId, bytes32 _distId, uint256 _startTime){
     // given 2 arbitrary args, the hashing function should retrieve the value scheduleId.
     // also the distId and startTime associated with this scheduleId must match the arbitrary values.
     require (getScheduleId(_distId, _startTime) == scheduleId && (getScheduledDistributionId(scheduleId) == _distId && getScheduledStartTime(scheduleId) == _startTime));
 }
+
 
 function callAllFunctionsWithParameters(method f, env e, bytes32 scheduleId, bytes32[] scheduleIds){
     bytes32 distId; uint256 startTime; uint256 amount;
@@ -72,9 +85,31 @@ function callAllFunctionsWithParameters(method f, env e, bytes32 scheduleId, byt
     }
 }
 
+
+function stateTransitionHelper(method f, env e, bytes32 scheduleId){
+    bytes32 distributionId; uint256 amount; uint256 startTime;
+    bytes32[] scheduleIds;
+
+	if (f.selector == scheduleDistribution(bytes32, uint256, uint256).selector) {
+        bytes32 schID = scheduleDistribution(e, distributionId, amount, startTime);
+        require schID == scheduleId;
+	} else if (f.selector == startDistributions(bytes32[]).selector) {
+        require scheduleIds.length > 0;
+        require scheduleIds[0] == scheduleId;
+        startDistributions(e, scheduleIds);
+	} else if (f.selector == cancelDistribution(bytes32).selector) {
+		cancelDistribution(e, scheduleId);
+	} else {
+        calldataarg args;
+        f(e, args);
+    }
+}
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////    Invariants    //////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
+
 
 // V@V - distributionId, startTime, amount are either initialized (!=0) or uninitialized (0) simultaneously
 invariant scheduleExistInitializedParams(bytes32 scheduleId)
@@ -105,21 +140,50 @@ invariant oneStateAtATime(bytes32 scheduleId, env e)
         }
 
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////    Rules    ////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+
+//  State transition: UNINITIALIZED -> PENDING
+rule transition_DistScheduleNotExist_To_DistScheduleCreated(bytes32 scheduleId, method f) filtered { f -> f.selector != certorafallback_0().selector } {
+    env e; calldataarg args;
+    require distScheduleNotExist(scheduleId);
+    
+    stateTransitionHelper(f, e, scheduleId);
+
+    assert f.selector != scheduleDistribution(bytes32, uint256, uint256).selector <=> distScheduleNotExist(scheduleId), "schedule changed state without scheduling a distribution";
+    assert f.selector == scheduleDistribution(bytes32, uint256, uint256).selector <=> distScheduleCreated(scheduleId, e), "schedule did not change due to call to scheduleDistribution function";
+}
+
+
+// State transition: PENDING -> STARTED
+//                   PENDING -> CANCELLED
+rule transition_DistScheduleCreated_To_DistStarted(bytes32 scheduleId, method f) filtered { f -> f.selector != certorafallback_0().selector } {
+    env e; calldataarg args;
+    require distScheduleCreated(scheduleId, e);
+    
+    stateTransitionHelper(f, e, scheduleId);
+
+    assert (f.selector != startDistributions(bytes32[]).selector && f.selector != cancelDistribution(bytes32).selector) <=> distScheduleCreated(scheduleId, e), "schedule changed state without starting a distribution";
+    assert f.selector == startDistributions(bytes32[]).selector <=> distStarted(scheduleId, e), "schedule did not change due to call to startDistributions function";
+    assert f.selector == cancelDistribution(bytes32).selector <=> distCancelled(scheduleId, e), "schedule did not change due to call to cancelDistribution function";
+}
+
+
 // if canceled cannot do anything
-// strange scenarious
 rule noLifeAfterCancellation(bytes32 scheduleId, env e, method f) filtered { f -> f.selector != certorafallback_0().selector } {
     bytes32[] scheduleIds;
     uint256 amount; uint256 startTime;
 
     require distCancelled(scheduleId, e);
-    require scheduleIds.length == 3;
-    require scheduleIds[0] == scheduleId;
 
     calldataarg args;
-    invoke f(e, args);
+    f(e, args);
 
-    assert !lastReverted, "something happened";
+    assert distCancelled(scheduleId, e), "something happened";
 }
+
 
 // once start time and amount are set, they cannot be changed
 rule permanentValues(bytes32 scheduleId, env e, method f) filtered { f -> f.selector != certorafallback_0().selector } {
@@ -161,6 +225,3 @@ rule schedulesAreIndependent(method f, bytes32 scheduleId1, bytes32 scheduleId2)
     assert _status == status_, "status changed";
     // assert ((totSupply_ == _totSupply) || (nonSpecificDistribution(f) <=> (totSupply_ != _totSupply))), "totSupply changed not due to stake/unstake/exit";
 }
-
-
-// can non owner get distribution money --- will require multicontracts and I'm not sure if it makes sense
