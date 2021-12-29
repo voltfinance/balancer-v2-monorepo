@@ -310,7 +310,6 @@ invariant conditionsDistExist(bytes32 distId, env e)
 
 
 // V@V - paymentRate is failing understandably. lastUpdateTime, periodFinished and PaymentRate are either initialized (!=0) or uninitialized (0) simultaneously
-// we assume here paymentRate != 0, although it is technically possible to have paymentRate == 0.
 invariant distActivatedAtLeastOnceParams(bytes32 distId, env e)
         (getLastUpdateTime(distId) == 0 <=> getPeriodFinish(distId) == 0) //&&
             // (getPeriodFinish(distId) == 0 <=> getPaymentRate(distId) == 0)
