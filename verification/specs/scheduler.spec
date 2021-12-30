@@ -6,7 +6,7 @@ methods {
     getScheduledStatus(bytes32) returns uint8 envfree //enum
 
     // non view functions
-    getScheduleId(bytes32, uint256) returns bytes32 envfree
+    getScheduleId(bytes32 distributionId, uint256 startTime) returns bytes32 envfree => uniqueHashGhost(distributionId, startTime)
     scheduleDistribution(bytes32, uint256, uint256) returns bytes32
     startDistributions(bytes32[])
     cancelDistribution(bytes32)
@@ -49,27 +49,39 @@ definition distCancelled(bytes32 scheduleId, env e) returns bool =
     (getScheduledStartTime(scheduleId) != 0 && getScheduledStartTime(scheduleId) > e.block.timestamp) &&
     getScheduledStatus(scheduleId) == 3;
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////    Ghost    //////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+// Ghost that keeps track of the hashing to assume determinism of the hashing operation.
+ghost uniqueHashGhost(bytes32, uint256) returns bytes32;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Helpers    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-
+// Making sure the env does not take any 0 values which aren't realistic anyway
 function requireEnvValuesNotZero(env e){
     require e.msg.sender != 0;
     require e.block.number != 0;
     require e.block.timestamp != 0;
 }
 
-
-// assuming the hash is deterministic, and correlates the arg duo properly
+// Assuming the hash is deterministic, and correlates the arg duo properly
 function requireScheduleIdCorrelatedWithDuo(bytes32 scheduleId, bytes32 _distId, uint256 _startTime){
     // given 2 arbitrary args, the hashing function should retrieve the value scheduleId.
     // also the distId and startTime associated with this scheduleId must match the arbitrary values.
     require (getScheduleId(_distId, _startTime) == scheduleId && (getScheduledDistributionId(scheduleId) == _distId && getScheduledStartTime(scheduleId) == _startTime));
 }
 
+// Assuming the hash is deterministic, and correlates the duo properly
+function hashUniquness(bytes32 scheduleId1, bytes32 distId1, uint256 startTime1, bytes32 scheduleId2, bytes32 distId2, uint256 startTime2){
+    require (((distId1 != distId2) || (startTime1 != startTime2)) <=> 
+    (uniqueHashGhost(distId1, startTime1) != uniqueHashGhost(distId2, startTime2)));
+}
 
+// Calling all non-view function with specified parameters.
+// A helper function that allows modification of the input args to assure specific values are being passed to the contract's functions when needed
 function callAllFunctionsWithParameters(method f, env e, bytes32 scheduleId, bytes32[] scheduleIds){
     bytes32 distId; uint256 startTime; uint256 amount;
     if (f.selector == scheduleDistribution(bytes32, uint256, uint256).selector) {
@@ -84,7 +96,6 @@ function callAllFunctionsWithParameters(method f, env e, bytes32 scheduleId, byt
         f(e, args);
     }
 }
-
 
 function stateTransitionHelper(method f, env e, bytes32 scheduleId){
     bytes32 distributionId; uint256 amount; uint256 startTime;
@@ -104,7 +115,6 @@ function stateTransitionHelper(method f, env e, bytes32 scheduleId){
         f(e, args);
     }
 }
-
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////    Invariants    //////////////////////////////////////
@@ -159,7 +169,7 @@ rule transition_DistScheduleNotExist_To_DistScheduleCreated(bytes32 scheduleId, 
 
 // State transition: PENDING -> STARTED
 //                   PENDING -> CANCELLED
-rule transition_DistScheduleCreated_To_DistStarted(bytes32 scheduleId, method f) filtered { f -> f.selector != certorafallback_0().selector } {
+rule transition_DistScheduleCreated_To_DistStarted_Or_DistCancelled(bytes32 scheduleId, method f) filtered { f -> f.selector != certorafallback_0().selector } {
     env e; calldataarg args;
     require distScheduleCreated(scheduleId, e);
     
@@ -199,6 +209,46 @@ rule permanentValues(bytes32 scheduleId, env e, method f) filtered { f -> f.sele
     uint256 startTimeAfter = getScheduledStartTime(scheduleId);
 
     assert amountBefore == amountAfter && startTimeBefore == startTimeAfter, "values has changed";
+}
+
+
+// F@F - starting from an initial state where dist 1 & 2 does not exist (all fields are in default values),
+// creation of 2 dists (with different ids) must result from 2 different trios. 
+// @note that hashUniquness is assuming that for different distIds the trios are not equal,
+// therefore the rule is basically weaker than intended, it mainly shows that createDistribution from DistNotExist
+// populate the mapping with the distinct trios
+rule noTwoDuosAreTheSameFirstStep(env e, env e2, bytes32 scheduleId1, bytes32 scheduleId2){
+    method f; calldataarg args;
+    bytes32 distId1; uint256 amount1; uint256 startTime1;
+    bytes32 distId2; uint256 amount2; uint256 startTime2;
+
+    require (distScheduleNotExist(scheduleId1) && distScheduleNotExist(scheduleId2));
+    bytes32 scheduleId1_return = scheduleDistribution(e, distId1, amount1, startTime1);
+    bytes32 scheduleId2_return = scheduleDistribution(e2, distId2, amount2, startTime2);
+ 
+    hashUniquness(scheduleId1_return, distId1, startTime1, scheduleId2_return, distId2, startTime2);
+    requireScheduleIdCorrelatedWithDuo(scheduleId1_return, distId1, startTime1);
+    requireScheduleIdCorrelatedWithDuo(scheduleId2_return, distId2, startTime2);
+
+    assert ((scheduleId1 == scheduleId1_return && scheduleId2 == scheduleId2_return) => 
+            ((getScheduledDistributionId(scheduleId1_return) != getScheduledDistributionId(scheduleId2_return)) || 
+            (getScheduledStartTime(scheduleId1_return) != getScheduledStartTime(scheduleId2_return))));
+}
+
+
+// V@V - Once 2 distributions has 2 distinct trios constituting them, their trio fields cannot be changed in such a way that will make them equivalent.
+rule noTwoTripletsAreTheSame(env e, bytes32 scheduleId1, bytes32 scheduleId2){
+    method f; calldataarg args;
+    bytes32 distId1; uint256 amount1; uint256 startTime1;
+    bytes32 distId2; uint256 amount2; uint256 startTime2;
+
+    require (!distScheduleNotExist(scheduleId1) && !distScheduleNotExist(scheduleId2));
+    requireInvariant oneStateAtATime(scheduleId1, e); requireInvariant oneStateAtATime(scheduleId2, e);
+    requireScheduleIdCorrelatedWithDuo(scheduleId1, distId1, startTime1); requireInvariant scheduleExistInitializedParams(scheduleId1);
+    requireScheduleIdCorrelatedWithDuo(scheduleId2, distId2, startTime2); requireInvariant scheduleExistInitializedParams(scheduleId2);
+    require ((getScheduledDistributionId(scheduleId1) != getScheduledDistributionId(scheduleId2)) || (getScheduledStartTime(scheduleId1) != getScheduledStartTime(scheduleId2)));
+    f(e,args);
+    assert ((getScheduledDistributionId(scheduleId1) != getScheduledDistributionId(scheduleId2)) || (getScheduledStartTime(scheduleId1) != getScheduledStartTime(scheduleId2))), "both fields are the same";
 }
 
 
