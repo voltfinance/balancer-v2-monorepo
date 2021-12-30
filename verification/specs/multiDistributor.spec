@@ -210,7 +210,7 @@ function requireDistIdCorrelatedWithTrio(bytes32 distId, address _stakingToken, 
 }
 
 // Assuming the hash is deterministic, and correlates the trio properly
-function hashUniquness(bytes32 distId1, address stakingToken1, address distributionToken1, address owner1, bytes32 distId2, address stakingToken2, address distributionToken2, address owner2){
+function hashUniquness(address stakingToken1, address distributionToken1, address owner1, address stakingToken2, address distributionToken2, address owner2){
     require (((stakingToken1 != stakingToken2) || (distributionToken1 != distributionToken2) || (owner1 != owner2)) <=> 
     (uniqueHashGhost(stakingToken1, distributionToken1, owner1) != uniqueHashGhost(stakingToken2, distributionToken2, owner2)));
 }
@@ -283,6 +283,7 @@ invariant notSubscribedToNonExistingDistSet(bytes32 distId, address user)
 // F@F - If duration/owner/staking_token/distribution_token are not set, the distribution does not exist
 invariant conditionsDistNotExist(bytes32 distId)
         getStakingToken(distId) == 0 <=> distNotExist(distId)
+        filtered { f -> f.selector != certorafallback_0().selector }
         {
             preserved with (env e)
             {
@@ -334,6 +335,7 @@ invariant oneStateAtATime(bytes32 distId, env e)
         (!distNotExist(distId) && distNew(distId) && !distActive(distId, e) && !distFinished(distId, e)) ||
         (!distNotExist(distId) && !distNew(distId) && distActive(distId, e) && !distFinished(distId, e)) ||
         (!distNotExist(distId) && !distNew(distId) && !distActive(distId, e) && distFinished(distId, e)))
+        filtered { f -> f.selector != certorafallback_0().selector }
         {
             preserved with (env e2)
             {
@@ -480,7 +482,7 @@ rule transition_NotExist_To_DistNew(bytes32 distId) {
     requireInvariant _userStakingMappingAndSetAreCorrelated(distId, stakingToken, user);
     requireInvariant notSubscribedToNonExistingDistSet(distId, user);
 
-    // calling all functions, making sure the created distr-ibution id is the distId of interest
+    // calling all functions, making sure the created distribution id is the distId of interest
     callAllFunctionsWithParameters(f, e, distId, distIds, stakingToken, user);
     assert f.selector != createDistribution(address, address, uint256).selector => distNotExist(distId), "distribution changed state without creating a distribution";
     assert f.selector == createDistribution(address, address, uint256).selector => distNew(distId), "distribution did not change due to call to createDistribution function";
@@ -545,7 +547,7 @@ rule noTwoTripletsAreTheSameFirstStep(env e, env e2, bytes32 distId1, bytes32 di
     bytes32 distId1_return = createDistribution(e, stk1, dst1, dur1);
     bytes32 distId2_return = createDistribution(e2, stk2, dst2, dur2);
  
-    hashUniquness(distId1_return, stk1, dst1, e.msg.sender, distId2_return, stk2, dst2, e2.msg.sender);
+    hashUniquness(stk1, dst1, e.msg.sender, stk2, dst2, e2.msg.sender);
     requireDistIdCorrelatedWithTrio(distId1_return, stk1, dst1, e.msg.sender);
     requireDistIdCorrelatedWithTrio(distId2_return, stk2, dst2, e2.msg.sender); 
 
