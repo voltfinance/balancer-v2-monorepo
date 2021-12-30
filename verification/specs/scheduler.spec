@@ -136,7 +136,7 @@ invariant conditionsScheduleNotExist(bytes32 scheduleId)
 
 
 // V@V - The system is in either of the 4 defined states. It cannot be in any other state, nor in more than 1 state at the same time.
-invariant oneStateAtATime(bytes32 scheduleId, env e)
+invariant oneScheduleStateAtATime(bytes32 scheduleId, env e)
         ((distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
         (!distScheduleNotExist(scheduleId) && distScheduleCreated(scheduleId, e) && !distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
         (!distScheduleNotExist(scheduleId) && !distScheduleCreated(scheduleId, e) && distStarted(scheduleId, e) && !distCancelled(scheduleId, e)) ||
@@ -161,7 +161,7 @@ rule transition_DistScheduleNotExist_To_DistScheduleCreated(bytes32 scheduleId, 
     require distScheduleNotExist(scheduleId);
     
     stateTransitionHelper(f, e, scheduleId);
-
+    
     assert f.selector != scheduleDistribution(bytes32, uint256, uint256).selector <=> distScheduleNotExist(scheduleId), "schedule changed state without scheduling a distribution";
     assert f.selector == scheduleDistribution(bytes32, uint256, uint256).selector <=> distScheduleCreated(scheduleId, e), "schedule did not change due to call to scheduleDistribution function";
 }
@@ -181,10 +181,23 @@ rule transition_DistScheduleCreated_To_DistStarted_Or_DistCancelled(bytes32 sche
 }
 
 
+// if started cannot do anything
+rule noLifeAfterStart(bytes32 scheduleId, env e, method f) filtered { f -> f.selector != certorafallback_0().selector } {
+    // bytes32[] scheduleIds;
+    // uint256 amount; uint256 startTime;
+
+    require distStarted(scheduleId, e);
+
+    calldataarg args;
+    f(e, args);
+
+    assert distStarted(scheduleId, e), "something happened";
+}
+
 // if canceled cannot do anything
 rule noLifeAfterCancellation(bytes32 scheduleId, env e, method f) filtered { f -> f.selector != certorafallback_0().selector } {
-    bytes32[] scheduleIds;
-    uint256 amount; uint256 startTime;
+    // bytes32[] scheduleIds;
+    // uint256 amount; uint256 startTime;
 
     require distCancelled(scheduleId, e);
 
@@ -227,8 +240,8 @@ rule noTwoDuosAreTheSameFirstStep(env e, env e2, bytes32 scheduleId1, bytes32 sc
     bytes32 scheduleId2_return = scheduleDistribution(e2, distId2, amount2, startTime2);
  
     hashUniquness(scheduleId1_return, distId1, startTime1, scheduleId2_return, distId2, startTime2);
-    requireScheduleIdCorrelatedWithDuo(scheduleId1_return, distId1, startTime1);
-    requireScheduleIdCorrelatedWithDuo(scheduleId2_return, distId2, startTime2);
+    requireScheduleIdCorrelatedWithDuo(scheduleId1_return, distId1, startTime1); requireInvariant scheduleExistInitializedParams(scheduleId1);
+    requireScheduleIdCorrelatedWithDuo(scheduleId2_return, distId2, startTime2); requireInvariant scheduleExistInitializedParams(scheduleId2);
 
     assert ((scheduleId1 == scheduleId1_return && scheduleId2 == scheduleId2_return) => 
             ((getScheduledDistributionId(scheduleId1_return) != getScheduledDistributionId(scheduleId2_return)) || 
@@ -237,13 +250,13 @@ rule noTwoDuosAreTheSameFirstStep(env e, env e2, bytes32 scheduleId1, bytes32 sc
 
 
 // V@V - Once 2 distributions has 2 distinct trios constituting them, their trio fields cannot be changed in such a way that will make them equivalent.
-rule noTwoTripletsAreTheSame(env e, bytes32 scheduleId1, bytes32 scheduleId2){
+rule noTwoDuosAreTheSame(env e, bytes32 scheduleId1, bytes32 scheduleId2){
     method f; calldataarg args;
     bytes32 distId1; uint256 amount1; uint256 startTime1;
     bytes32 distId2; uint256 amount2; uint256 startTime2;
 
     require (!distScheduleNotExist(scheduleId1) && !distScheduleNotExist(scheduleId2));
-    requireInvariant oneStateAtATime(scheduleId1, e); requireInvariant oneStateAtATime(scheduleId2, e);
+    requireInvariant oneScheduleStateAtATime(scheduleId1, e); requireInvariant oneScheduleStateAtATime(scheduleId2, e);
     requireScheduleIdCorrelatedWithDuo(scheduleId1, distId1, startTime1); requireInvariant scheduleExistInitializedParams(scheduleId1);
     requireScheduleIdCorrelatedWithDuo(scheduleId2, distId2, startTime2); requireInvariant scheduleExistInitializedParams(scheduleId2);
     require ((getScheduledDistributionId(scheduleId1) != getScheduledDistributionId(scheduleId2)) || (getScheduledStartTime(scheduleId1) != getScheduledStartTime(scheduleId2)));
