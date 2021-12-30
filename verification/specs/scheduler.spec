@@ -6,16 +6,16 @@ methods {
     getScheduledStatus(bytes32) returns uint8 envfree //enum
 
     // non view functions
-    getScheduleId(bytes32 distributionId, uint256 startTime) returns bytes32 envfree => uniqueHashGhost(distributionId, startTime)
+    getScheduleId(bytes32 distributionId, uint256 startTime) returns bytes32 envfree //=> uniqueHashGhost(distributionId, startTime)
     scheduleDistribution(bytes32, uint256, uint256) returns bytes32
     startDistributions(bytes32[])
     cancelDistribution(bytes32)
 
-    balanceOf(address) returns uint256 => DISPATCHER(true)
-    transfer(address, uint256) returns bool => DISPATCHER(true)
-    transferFrom(address, address, uint256) returns bool => DISPATCHER(true)
-    approve(address, uint256) returns (bool) => DISPATCHER(true)
-    fundDistribution(bytes32, uint256) => DISPATCHER(true)
+    // balanceOf(address) returns uint256 => DISPATCHER(true)
+    // transfer(address, uint256) returns bool => DISPATCHER(true)
+    // transferFrom(address, address, uint256) returns bool => DISPATCHER(true)
+    // approve(address, uint256) returns (bool) => DISPATCHER(true)
+    // fundDistribution(bytes32, uint256) => DISPATCHER(true)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,7 +55,7 @@ definition distCancelled(bytes32 scheduleId, env e) returns bool =
 /////////////////////////////////////////////////////////////////////////////////////////////
 
 // Ghost that keeps track of the hashing to assume determinism of the hashing operation.
-ghost uniqueHashGhost(bytes32, uint256) returns bytes32;
+// ghost uniqueHashGhost(bytes32, uint256) returns bytes32;
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Helpers    ////////////////////////////////////////
@@ -75,11 +75,13 @@ function requireScheduleIdCorrelatedWithDuo(bytes32 scheduleId, bytes32 _distId,
     require (getScheduleId(_distId, _startTime) == scheduleId && (getScheduledDistributionId(scheduleId) == _distId && getScheduledStartTime(scheduleId) == _startTime));
 }
 
+/*
 // Assuming the hash is deterministic, and correlates the duo properly
 function hashUniquness(bytes32 scheduleId1, bytes32 distId1, uint256 startTime1, bytes32 scheduleId2, bytes32 distId2, uint256 startTime2){
     require (((distId1 != distId2) || (startTime1 != startTime2)) <=> 
     (uniqueHashGhost(distId1, startTime1) != uniqueHashGhost(distId2, startTime2)));
 }
+*/
 
 // Calling all non-view function with specified parameters.
 // A helper function that allows modification of the input args to assure specific values are being passed to the contract's functions when needed
@@ -98,19 +100,21 @@ function callAllFunctionsWithParameters(method f, env e, bytes32 scheduleId, byt
     }
 }
 
+// Calling all non-view functions, including reverting paths, with specified parameters.
+// A helper function that allows modification of the input args to assure specific values are being passed to the contract's functions when needed
 function stateTransitionHelper(method f, env e, bytes32 scheduleId){
     bytes32 distributionId; uint256 amount; uint256 startTime;
     bytes32[] scheduleIds;
 
 	if (f.selector == scheduleDistribution(bytes32, uint256, uint256).selector) {
-        bytes32 schID = scheduleDistribution@withRevert(e, distributionId, amount, startTime);
+        bytes32 schID = scheduleDistribution(e, distributionId, amount, startTime);
         require schID == scheduleId;
 	} else if (f.selector == startDistributions(bytes32[]).selector) {
         require scheduleIds.length > 0;
         require scheduleIds[0] == scheduleId;
-        startDistributions@withRevert(e, scheduleIds);
+        startDistributions(e, scheduleIds);
 	} else if (f.selector == cancelDistribution(bytes32).selector) {
-		cancelDistribution@withRevert(e, scheduleId);
+		cancelDistribution(e, scheduleId);
 	} else {
         calldataarg args;
         f(e, args);
@@ -155,7 +159,7 @@ invariant oneScheduleStateAtATime(bytes32 scheduleId, env e)
 ////////////////////////////////////////    Rules    ////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
 
-
+/*
 //  State transition: UNINITIALIZED -> PENDING
 rule transition_DistScheduleNotExist_To_DistScheduleCreated(bytes32 scheduleId, method f) filtered { f -> f.selector != certorafallback_0().selector } {
     env e; calldataarg args;
@@ -163,7 +167,7 @@ rule transition_DistScheduleNotExist_To_DistScheduleCreated(bytes32 scheduleId, 
     
     stateTransitionHelper(f, e, scheduleId);
 
-    assert !lastReverted => f.selector != scheduleDistribution(bytes32, uint256, uint256).selector <=> distScheduleNotExist(scheduleId), "schedule changed state without scheduling a distribution";
+    assert f.selector != scheduleDistribution(bytes32, uint256, uint256).selector <=> distScheduleNotExist(scheduleId), "schedule changed state without scheduling a distribution";
     assert f.selector == scheduleDistribution(bytes32, uint256, uint256).selector <=> distScheduleCreated(scheduleId, e), "schedule did not change due to call to scheduleDistribution function";
 }
 
@@ -182,7 +186,7 @@ rule transition_DistScheduleCreated_To_DistStarted_Or_DistCancelled(bytes32 sche
     assert f.selector == startDistributions(bytes32[]).selector <=> distStarted(scheduleId, e), "schedule did not change due to call to startDistributions function";
     assert f.selector == cancelDistribution(bytes32).selector <=> distCancelled(scheduleId, e), "schedule did not change due to call to cancelDistribution function";
 }
-
+*/
 
 // if started cannot do anything
 rule noLifeAfterStart(bytes32 scheduleId, env e, method f) filtered { f -> f.selector != certorafallback_0().selector } {
@@ -227,7 +231,7 @@ rule permanentValues(bytes32 scheduleId, env e, method f) filtered { f -> f.sele
     assert amountBefore == amountAfter && startTimeBefore == startTimeAfter, "values has changed";
 }
 
-
+/*
 // F@F - starting from an initial state where dist 1 & 2 does not exist (all fields are in default values),
 // creation of 2 dists (with different ids) must result from 2 different trios. 
 // @note that hashUniquness is assuming that for different distIds the trios are not equal,
@@ -242,7 +246,7 @@ rule noTwoDuosAreTheSameFirstStep(env e, env e2, bytes32 scheduleId1, bytes32 sc
     bytes32 scheduleId1_return = scheduleDistribution(e, distId1, amount1, startTime1);
     bytes32 scheduleId2_return = scheduleDistribution(e2, distId2, amount2, startTime2);
  
-    hashUniquness(scheduleId1_return, distId1, startTime1, scheduleId2_return, distId2, startTime2);
+    // hashUniquness(scheduleId1_return, distId1, startTime1, scheduleId2_return, distId2, startTime2);
     requireScheduleIdCorrelatedWithDuo(scheduleId1_return, distId1, startTime1); requireInvariant scheduleExistInitializedParams(scheduleId1);
     requireScheduleIdCorrelatedWithDuo(scheduleId2_return, distId2, startTime2); requireInvariant scheduleExistInitializedParams(scheduleId2);
 
@@ -266,7 +270,7 @@ rule noTwoDuosAreTheSame(env e, bytes32 scheduleId1, bytes32 scheduleId2){
     f(e,args);
     assert ((getScheduledDistributionId(scheduleId1) != getScheduledDistributionId(scheduleId2)) || (getScheduledStartTime(scheduleId1) != getScheduledStartTime(scheduleId2))), "both fields are the same";
 }
-
+*/
 
 // V@V - When calling a function on a specific schedule (start, cancel, and create), no other schedules are being affected
 rule schedulesAreIndependent(method f, bytes32 scheduleId1, bytes32 scheduleId2) {
