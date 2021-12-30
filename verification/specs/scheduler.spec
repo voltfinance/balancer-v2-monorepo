@@ -15,6 +15,7 @@ methods {
     transfer(address, uint256) returns bool => DISPATCHER(true)
     transferFrom(address, address, uint256) returns bool => DISPATCHER(true)
     approve(address, uint256) returns (bool) => DISPATCHER(true)
+    fundDistribution(bytes32, uint256) => DISPATCHER(true)
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -102,14 +103,14 @@ function stateTransitionHelper(method f, env e, bytes32 scheduleId){
     bytes32[] scheduleIds;
 
 	if (f.selector == scheduleDistribution(bytes32, uint256, uint256).selector) {
-        bytes32 schID = scheduleDistribution(e, distributionId, amount, startTime);
+        bytes32 schID = scheduleDistribution@withRevert(e, distributionId, amount, startTime);
         require schID == scheduleId;
 	} else if (f.selector == startDistributions(bytes32[]).selector) {
         require scheduleIds.length > 0;
         require scheduleIds[0] == scheduleId;
-        startDistributions(e, scheduleIds);
+        startDistributions@withRevert(e, scheduleIds);
 	} else if (f.selector == cancelDistribution(bytes32).selector) {
-		cancelDistribution(e, scheduleId);
+		cancelDistribution@withRevert(e, scheduleId);
 	} else {
         calldataarg args;
         f(e, args);
@@ -161,8 +162,8 @@ rule transition_DistScheduleNotExist_To_DistScheduleCreated(bytes32 scheduleId, 
     require distScheduleNotExist(scheduleId);
     
     stateTransitionHelper(f, e, scheduleId);
-    
-    assert f.selector != scheduleDistribution(bytes32, uint256, uint256).selector <=> distScheduleNotExist(scheduleId), "schedule changed state without scheduling a distribution";
+
+    assert !lastReverted => f.selector != scheduleDistribution(bytes32, uint256, uint256).selector <=> distScheduleNotExist(scheduleId), "schedule changed state without scheduling a distribution";
     assert f.selector == scheduleDistribution(bytes32, uint256, uint256).selector <=> distScheduleCreated(scheduleId, e), "schedule did not change due to call to scheduleDistribution function";
 }
 
@@ -175,7 +176,9 @@ rule transition_DistScheduleCreated_To_DistStarted_Or_DistCancelled(bytes32 sche
     
     stateTransitionHelper(f, e, scheduleId);
 
-    assert (f.selector != startDistributions(bytes32[]).selector && f.selector != cancelDistribution(bytes32).selector) <=> distScheduleCreated(scheduleId, e), "schedule changed state without starting a distribution";
+    assert !lastReverted 
+                => ((f.selector != startDistributions(bytes32[]).selector && f.selector != cancelDistribution(bytes32).selector) 
+                            <=> distScheduleCreated(scheduleId, e)), "schedule changed state without starting a distribution";
     assert f.selector == startDistributions(bytes32[]).selector <=> distStarted(scheduleId, e), "schedule did not change due to call to startDistributions function";
     assert f.selector == cancelDistribution(bytes32).selector <=> distCancelled(scheduleId, e), "schedule did not change due to call to cancelDistribution function";
 }

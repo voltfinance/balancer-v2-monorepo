@@ -215,6 +215,101 @@ function hashUniquness(address stakingToken1, address distributionToken1, addres
     (uniqueHashGhost(stakingToken1, distributionToken1, owner1) != uniqueHashGhost(stakingToken2, distributionToken2, owner2)));
 }
 
+
+function integrityHelper(method f, env e, bytes32 distributionId, address user, address distributionToken, address stakingToken){
+    uint256 amount; uint256 deadline; uint8 v; 
+    bytes32[] distributionIds; 
+    bytes32 r; bytes32 s; 
+    bytes callbackData; 
+    address[] stakingTokens;
+    address callbackContract; 
+    
+    require distributionIds.length == 1;
+    require distributionIds[0] == distributionId;
+
+    require stakingTokens.length == 1;
+    require stakingTokens[0] == stakingToken;
+
+    uint256 index;
+    require index == 0;
+    require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  
+                && getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
+
+	if (f.selector == stake(address, uint256, address, address).selector) {
+        stake(e, stakingToken, amount, user, user); 
+    } else if (f.selector == stakeUsingVault(address, uint256, address, address).selector) {
+        stakeUsingVault(e, stakingToken, amount, user, user);
+	} else if  (f.selector == stakeWithPermit(address, uint256, address, uint256, uint8, bytes32, bytes32).selector) {
+        stakeWithPermit(e, stakingToken, amount, user, deadline, v, r, s);
+	} else if (f.selector == unstake(address, uint256, address, address).selector) {
+		unstake(e, stakingToken, amount, user, user);
+    }  else if  (f.selector == exit(address[], bytes32[]).selector) {
+        exit(e, stakingTokens, distributionIds);
+	} else if (f.selector == exitWithCallback(address[], bytes32[], address, bytes).selector) {
+		exitWithCallback(e, stakingTokens, distributionIds, callbackContract, callbackData);
+	} else {
+        calldataarg args;
+        f(e, args);
+    }
+}
+
+
+function solvencyHelper(method f, env e, bytes32 distributionId, address user, address distributionToken, address stakingToken){
+    uint256 duration; uint256 amount; uint256 deadline;
+    uint8 v; bytes32 r; bytes32 s;
+    bytes32[] distributionIds; address[] stakingTokens;
+    bool toInternalBalance; address callbackContract; bytes callbackData; 
+
+    require distributionIds.length == 1;
+    require distributionIds[0] == distributionId;
+
+    require stakingTokens.length == 1;
+    require stakingTokens[0] == stakingToken;
+
+	if (f.selector == createDistribution(address, address, uint256).selector) {
+        bytes32 distId = createDistribution(e, stakingToken, distributionToken, duration);
+        require distId == distributionId;
+	} else if (f.selector == setDistributionDuration(bytes32, uint256).selector) {
+        setDistributionDuration(e, distributionId, duration);
+	} else if (f.selector == fundDistribution(bytes32, uint256).selector) {
+        require e.msg.sender != user;
+		fundDistribution(e, distributionId, amount);
+	} else if (f.selector == subscribeDistributions(bytes32[]).selector) {
+        subscribeDistributions(e, distributionIds);
+	} else if (f.selector == unsubscribeDistributions(bytes32[]).selector) {
+		unsubscribeDistributions(e, distributionIds);
+    } else if (f.selector == stake(address, uint256, address, address).selector) {
+        require isSubscribed(distributionId, user);
+        stake(e, stakingToken, amount, user, user); 
+    } else if (f.selector == stakeUsingVault(address, uint256, address, address).selector) {
+        require isSubscribed(distributionId, user);
+        stakeUsingVault(e, stakingToken, amount, user, user);
+	} else if  (f.selector == stakeWithPermit(address, uint256, address, uint256, uint8, bytes32, bytes32).selector) {
+        require isSubscribed(distributionId, user);
+        stakeWithPermit(e, stakingToken, amount, user, deadline, v, r, s);
+	} else if (f.selector == unstake(address, uint256, address, address).selector) {
+        require isSubscribed(distributionId, user);
+		unstake(e, stakingToken, amount, user, user);
+    } else if (f.selector == claim(bytes32[], bool, address, address).selector) {
+        claim(e, distributionIds, toInternalBalance, user, user);
+    } else if (f.selector == claimWithCallback(bytes32[], address, address, bytes).selector) {
+        require callbackContract == user;
+        claimWithCallback(e, distributionIds, user, callbackContract, callbackData);
+	} else if  (f.selector == exit(address[], bytes32[]).selector) {
+        require isSubscribed(distributionId, user);
+        exit(e, stakingTokens, distributionIds);
+	} else if (f.selector == exitWithCallback(address[], bytes32[], address, bytes).selector) {
+        require isSubscribed(distributionId, user);
+        require e.msg.sender == user;
+        require callbackContract == user;
+		exitWithCallback(e, stakingTokens, distributionIds, callbackContract, callbackData);
+	} else {
+        calldataarg args;
+        f(e, args);
+    }
+}
+
+
 /////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////    Invariants    /////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -383,10 +478,10 @@ invariant gtpsGreaterOrEqualUtps(bytes32 distributionId, address stakingToken, a
         getGlobalTokensPerStake(distributionId) >= getUserTokensPerStake(distributionId, stakingToken, sender)
 
 
-// CHECK
+
 // The balance of subscribed and staked user should be less than or equal to the totalSupply of a distribution
 invariant userSubStakeCorrelationWithTotalSupply(bytes32 distributionId, address user, address token, uint256 index, env e)
-    (getDistIdContainedInUserSubscribedDistribution(token, user, distributionId) && getUserBalance(token, user) > 0)
+    (isSubscribed(distributionId, user) && getUserBalance(token, user) > 0)
             => (getUserBalance(token, user) <= getTotalSupply(distributionId)) filtered { f -> f.selector != certorafallback_0().selector }
     { 
         preserved with (env e2) 
@@ -458,6 +553,23 @@ invariant userSubStakeCorrelationWithTotalSupply(bytes32 distributionId, address
             require distributionIds[0] == distributionId;
             requireInvariant notSubscribedToNonExistingDistSet(distributionId, user);
             requireInvariant enumerableSetIsCorrelated(token, user, index, distributionId);
+        }
+        preserved createDistribution(address stakingToken, address distributionToken, uint256 duration) with (env e10)
+        {
+            require stakingToken == token;
+            require getStakingToken(distributionId) == token;
+            require getDistributionToken(distributionId) == distributionToken;
+            require e10.msg.sender == user;
+            require createDistribution(e10, stakingToken, distributionToken, duration) == distributionId;
+            require (
+                        getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == max_uint256 &&
+                        getUserSubscribedDistributionIdByIndex(stakingToken, user, index) != distributionId 
+                    ) 
+                    ||    
+                    (  
+                        getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  &&
+                        getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index
+                    );
         }
     }
 
@@ -552,9 +664,9 @@ rule noTwoTripletsAreTheSameFirstStep(env e, env e2, bytes32 distId1, bytes32 di
     requireDistIdCorrelatedWithTrio(distId2_return, stk2, dst2, e2.msg.sender); 
 
     assert ((distId1 == distId1_return && distId2 == distId2_return) => 
-            (getStakingToken(distId1_return) != getStakingToken(distId2_return)) || 
+            ((getStakingToken(distId1_return) != getStakingToken(distId2_return)) || 
             (getDistributionToken(distId1_return) != getDistributionToken(distId2_return)) || 
-            (getOwner(distId1_return) != getOwner(distId2_return)));
+            (getOwner(distId1_return) != getOwner(distId2_return))));
 }
 
 
@@ -682,7 +794,7 @@ rule balanceOfChange(address userA, address userB, address stakingToken,  method
 }
 
 
-// CHECK
+// CLEANED
 // Check that the changes to total supply are coherent with the changes to balance
 rule integrityBalanceOfTotalSupply(address user, address distributionToken, address stakingToken, bytes32 distributionId, uint256 index, method f, env e) filtered { f -> f.selector != certorafallback_0().selector} {
     require e.msg.sender == user;
@@ -700,44 +812,6 @@ rule integrityBalanceOfTotalSupply(address user, address distributionToken, addr
 
 	assert (balanceAAfter != balanceABefore) 
                 => (balanceAAfter - balanceABefore  == totalSupplyAfter - totalSupplyBefore), "not correlated";
-}
-
-
-function integrityHelper(method f, env e, bytes32 distributionId, address user, address distributionToken, address stakingToken){
-    uint256 amount; uint256 deadline; uint8 v; 
-    bytes32[] distributionIds; 
-    bytes32 r; bytes32 s; 
-    bytes callbackData; 
-    address[] stakingTokens;
-    address callbackContract; 
-    
-    require distributionIds.length == 1;
-    require distributionIds[0] == distributionId;
-
-    require stakingTokens.length == 1;
-    require stakingTokens[0] == stakingToken;
-
-    uint256 index;
-    require index == 0;
-    require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  
-                && getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
-
-	if (f.selector == stake(address, uint256, address, address).selector) {
-        stake(e, stakingToken, amount, user, user); 
-    } else if (f.selector == stakeUsingVault(address, uint256, address, address).selector) {
-        stakeUsingVault(e, stakingToken, amount, user, user);
-	} else if  (f.selector == stakeWithPermit(address, uint256, address, uint256, uint8, bytes32, bytes32).selector) {
-        stakeWithPermit(e, stakingToken, amount, user, deadline, v, r, s);
-	} else if (f.selector == unstake(address, uint256, address, address).selector) {
-		unstake(e, stakingToken, amount, user, user);
-    }  else if  (f.selector == exit(address[], bytes32[]).selector) {
-        exit(e, stakingTokens, distributionIds);
-	} else if (f.selector == exitWithCallback(address[], bytes32[], address, bytes).selector) {
-		exitWithCallback(e, stakingTokens, distributionIds, callbackContract, callbackData);
-	} else {
-        calldataarg args;
-        f(e, args);
-    }
 }
 
 
@@ -844,7 +918,7 @@ rule itIsOnlyMyReward(address dstToken, bytes32 distributionId, address sender){
 }
 
 
-// solvency for 1 user
+// the sum of internal and external balances of a user remains the same
 rule solvencyForOneUser(address dstToken, address stkToken, bytes32 distributionId, method f) filtered { f -> !f.isView 
                                                     && f.selector != certorafallback_0().selector } {
     env e; 
@@ -859,7 +933,6 @@ rule solvencyForOneUser(address dstToken, address stkToken, bytes32 distribution
     
     require getDistributionToken(distributionId) == dstToken;
     require getStakingToken(distributionId) == stkToken;
-    // require getUserSubscribedDistributionIdByIndex(stkToken, user, index) == distributionId;
     requireInvariant enumerableSetIsCorrelated(stkToken, user, index, distributionId);
 
     uint256 claimableTokensBefore = getClaimableTokens(e, distributionId, user);
@@ -877,62 +950,6 @@ rule solvencyForOneUser(address dstToken, address stkToken, bytes32 distribution
     mathint combinedBalanceAfter = claimableTokensAfter + userBalanceAfter + vaultAndTokenBalanceAfter;
 
     assert combinedBalanceBefore == combinedBalanceAfter, "balances are not equal";
-}
-
-
-function solvencyHelper(method f, env e, bytes32 distributionId, address user, address distributionToken, address stakingToken){
-    uint256 duration; uint256 amount; uint256 deadline;
-    uint8 v; bytes32 r; bytes32 s;
-    bytes32[] distributionIds; address[] stakingTokens;
-    bool toInternalBalance; address callbackContract; bytes callbackData; 
-
-    require distributionIds.length == 1;
-    require distributionIds[0] == distributionId;
-
-    require stakingTokens.length == 1;
-    require stakingTokens[0] == stakingToken;
-
-	if (f.selector == createDistribution(address, address, uint256).selector) {
-        bytes32 distId = createDistribution(e, stakingToken, distributionToken, duration);
-        require distId == distributionId;
-	} else if (f.selector == setDistributionDuration(bytes32, uint256).selector) {
-        setDistributionDuration(e, distributionId, duration);
-	} else if (f.selector == fundDistribution(bytes32, uint256).selector) {
-        require e.msg.sender != user;
-		fundDistribution(e, distributionId, amount);
-	} else if (f.selector == subscribeDistributions(bytes32[]).selector) {
-        subscribeDistributions(e, distributionIds);
-	} else if (f.selector == unsubscribeDistributions(bytes32[]).selector) {
-		unsubscribeDistributions(e, distributionIds);
-    } else if (f.selector == stake(address, uint256, address, address).selector) {
-        require isSubscribed(distributionId, user);
-        stake(e, stakingToken, amount, user, user); 
-    } else if (f.selector == stakeUsingVault(address, uint256, address, address).selector) {
-        require isSubscribed(distributionId, user);
-        stakeUsingVault(e, stakingToken, amount, user, user);
-	} else if  (f.selector == stakeWithPermit(address, uint256, address, uint256, uint8, bytes32, bytes32).selector) {
-        require isSubscribed(distributionId, user);
-        stakeWithPermit(e, stakingToken, amount, user, deadline, v, r, s);
-	} else if (f.selector == unstake(address, uint256, address, address).selector) {
-        require isSubscribed(distributionId, user);
-		unstake(e, stakingToken, amount, user, user);
-    } else if (f.selector == claim(bytes32[], bool, address, address).selector) {
-        claim(e, distributionIds, toInternalBalance, user, user);
-    } else if (f.selector == claimWithCallback(bytes32[], address, address, bytes).selector) {
-        require callbackContract == user;
-        claimWithCallback(e, distributionIds, user, callbackContract, callbackData);
-	} else if  (f.selector == exit(address[], bytes32[]).selector) {
-        require isSubscribed(distributionId, user);
-        exit(e, stakingTokens, distributionIds);
-	} else if (f.selector == exitWithCallback(address[], bytes32[], address, bytes).selector) {
-        require isSubscribed(distributionId, user);
-        require e.msg.sender == user;
-        require callbackContract == user;
-		exitWithCallback(e, stakingTokens, distributionIds, callbackContract, callbackData);
-	} else {
-        calldataarg args;
-        f(e, args);
-    }
 }
 
 
