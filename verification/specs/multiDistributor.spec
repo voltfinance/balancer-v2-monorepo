@@ -255,10 +255,12 @@ function integrityHelper(method f, env e, bytes32 distributionId, address user, 
 
 
 function solvencyHelper(method f, env e, bytes32 distributionId, address user, address distributionToken, address stakingToken){
-    uint256 duration; uint256 amount; uint256 deadline;
+    uint256 duration; uint256 amount; uint256 deadline; uint256 index;
     uint8 v; bytes32 r; bytes32 s;
     bytes32[] distributionIds; address[] stakingTokens;
     bool toInternalBalance; address callbackContract; bytes callbackData; 
+
+    require index == 0;
 
     require distributionIds.length == 1;
     require distributionIds[0] == distributionId;
@@ -279,16 +281,24 @@ function solvencyHelper(method f, env e, bytes32 distributionId, address user, a
 	} else if (f.selector == unsubscribeDistributions(bytes32[]).selector) {
 		unsubscribeDistributions(e, distributionIds);
     } else if (f.selector == stake(address, uint256, address, address).selector) {
-        require isSubscribed(distributionId, user);
+        // require isSubscribed(distributionId, user);
+        require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  &&
+                            getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
         stake(e, stakingToken, amount, user, user); 
     } else if (f.selector == stakeUsingVault(address, uint256, address, address).selector) {
-        require isSubscribed(distributionId, user);
+        // require isSubscribed(distributionId, user);
+        require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  &&
+                            getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
         stakeUsingVault(e, stakingToken, amount, user, user);
 	} else if  (f.selector == stakeWithPermit(address, uint256, address, uint256, uint8, bytes32, bytes32).selector) {
-        require isSubscribed(distributionId, user);
+        // require isSubscribed(distributionId, user);
+        require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  &&
+                            getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
         stakeWithPermit(e, stakingToken, amount, user, deadline, v, r, s);
 	} else if (f.selector == unstake(address, uint256, address, address).selector) {
-        require isSubscribed(distributionId, user);
+        // require isSubscribed(distributionId, user);
+        require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  &&
+                            getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
 		unstake(e, stakingToken, amount, user, user);
     } else if (f.selector == claim(bytes32[], bool, address, address).selector) {
         claim(e, distributionIds, toInternalBalance, user, user);
@@ -296,10 +306,14 @@ function solvencyHelper(method f, env e, bytes32 distributionId, address user, a
         require callbackContract == user;
         claimWithCallback(e, distributionIds, user, callbackContract, callbackData);
 	} else if  (f.selector == exit(address[], bytes32[]).selector) {
-        require isSubscribed(distributionId, user);
+        // require isSubscribed(distributionId, user);
+        require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  &&
+                            getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
         exit(e, stakingTokens, distributionIds);
 	} else if (f.selector == exitWithCallback(address[], bytes32[], address, bytes).selector) {
-        require isSubscribed(distributionId, user);
+        // require isSubscribed(distributionId, user);
+        require getUserSubscribedDistributionIdByIndex(stakingToken, user, index) == distributionId  &&
+                            getUserSubscribedDistributionIndexById(stakingToken, user, distributionId) == index;
         require e.msg.sender == user;
         require callbackContract == user;
 		exitWithCallback(e, stakingTokens, distributionIds, callbackContract, callbackData);
@@ -383,6 +397,7 @@ invariant conditionsDistNotExist(bytes32 distId)
             preserved with (env e)
             {
                 address stakingToken; address user; uint256 index; address distributionToken;
+                require index == 0;
                 requireDistIdCorrelatedWithTrio(distId, stakingToken, distributionToken, user);
                 requireInvariant distExistInitializedParams(distId, e);
                 require index == 0;
@@ -390,6 +405,10 @@ invariant conditionsDistNotExist(bytes32 distId)
                 requireInvariant enumerableSetIsCorrelated(stakingToken, user, index, distId);
                 requireInvariant _userStakingMappingAndSetAreCorrelated(distId, stakingToken, user);
                 requireInvariant notSubscribedToNonExistingDistSet(distId, user);
+                require (
+                        getUserSubscribedDistributionIndexById(stakingToken, user, distId) == max_uint256 &&
+                        getUserSubscribedDistributionIdByIndex(stakingToken, user, index) != distId 
+                    );
             }
             preserved stake(address stakingToken2, uint256 amount, address sender, address recipient) with (env e)
             {
@@ -1083,16 +1102,14 @@ rule solvencyForOneUser(address dstToken, address stkToken, bytes32 distribution
     env e; 
     
     address user;
-    uint256 amount; uint256 index;
+    uint256 amount;
 
     require Vault != user;
     require user != currentContract;
-    require index == 0;
     require dstToken == stkToken;
     
     require getDistributionToken(distributionId) == dstToken;
     require getStakingToken(distributionId) == stkToken;
-    requireInvariant enumerableSetIsCorrelated(stkToken, user, index, distributionId);
 
     uint256 claimableTokensBefore = getClaimableTokens(e, distributionId, user);
     uint256 userBalanceBefore = getUserBalance(stkToken, user);
