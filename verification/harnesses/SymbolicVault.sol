@@ -50,10 +50,6 @@ contract SymbolicVault {
     	}
     }
 
-    function getBalanceOf(IERC20 asset, address user) external returns (uint256){
-        return balanceOf[asset][user];
-    }
-
     function totalAssetsOfUser(IERC20 asset, address user) external returns (uint256){
         return asset.balanceOf(user).add(balanceOf[asset][user]);
     }
