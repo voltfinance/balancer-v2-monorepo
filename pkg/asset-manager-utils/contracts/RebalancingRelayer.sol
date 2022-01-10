@@ -12,8 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 import "@balancer-labs/v2-vault/contracts/AssetHelpers.sol";
 import "@balancer-labs/v2-vault/contracts/interfaces/IAsset.sol";
@@ -75,7 +74,7 @@ contract RebalancingRelayer is IBasePoolRelayer, AssetHelpers {
 
         // Send back to the sender any remaining ETH value
         if (address(this).balance > 0) {
-            msg.sender.sendValue(address(this).balance);
+            payable(msg.sender).sendValue(address(this).balance);
         }
     }
 

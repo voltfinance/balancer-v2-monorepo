@@ -12,8 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/helpers/InputHelpers.sol";
@@ -111,9 +110,9 @@ contract StablePool is BaseGeneralPool, BaseMinimalSwapInfoPool, IRateProvider {
         // Immutable variables cannot be initialized inside an if statement, so we must do conditional assignments
         _token0 = tokens[0];
         _token1 = tokens[1];
-        _token2 = totalTokens > 2 ? tokens[2] : IERC20(0);
-        _token3 = totalTokens > 3 ? tokens[3] : IERC20(0);
-        _token4 = totalTokens > 4 ? tokens[4] : IERC20(0);
+        _token2 = totalTokens > 2 ? tokens[2] : IERC20(address(uint160(0)));
+        _token3 = totalTokens > 3 ? tokens[3] : IERC20(address(uint160(0)));
+        _token4 = totalTokens > 4 ? tokens[4] : IERC20(address(uint160(0)));
 
         _scalingFactor0 = _computeScalingFactor(tokens[0]);
         _scalingFactor1 = _computeScalingFactor(tokens[1]);

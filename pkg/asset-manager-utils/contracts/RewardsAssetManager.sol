@@ -12,6 +12,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+pragma solidity >=0.8.0;
+
 import "@balancer-labs/v2-vault/contracts/interfaces/IVault.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/interfaces/IRelayedBasePool.sol";
@@ -21,9 +23,6 @@ import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 import "./IAssetManager.sol";
-
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
 
 /**
  * @title RewardsAssetManager
@@ -96,7 +95,7 @@ abstract contract RewardsAssetManager is IAssetManager {
     }
 
     function getPoolAddress() public view returns (address) {
-        return address(uint256(_poolId) >> (12 * 8));
+        return address(uint160(uint256(_poolId) >> (12 * 8)));
     }
 
     function isInitialized() public view returns (bool) {

@@ -12,8 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Address.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.sol";
@@ -86,7 +85,7 @@ contract BalancerRelayer is IBalancerRelayer, ReentrancyGuard {
     function _refundETH() private {
         uint256 remainingEth = address(this).balance;
         if (remainingEth > 0) {
-            msg.sender.sendValue(remainingEth);
+            payable(msg.sender).sendValue(remainingEth);
         }
     }
 }

@@ -49,7 +49,7 @@ contract TestWETH is AccessControl, IWETH {
     function withdraw(uint256 wad) public override {
         require(balanceOf[msg.sender] >= wad, "INSUFFICIENT_BALANCE");
         balanceOf[msg.sender] -= wad;
-        msg.sender.transfer(wad);
+        payable(msg.sender).transfer(wad);
         emit Withdrawal(msg.sender, wad);
     }
 
@@ -81,7 +81,7 @@ contract TestWETH is AccessControl, IWETH {
     ) public override returns (bool) {
         require(balanceOf[src] >= wad, "INSUFFICIENT_BALANCE");
 
-        if (src != msg.sender && allowance[src][msg.sender] != uint256(-1)) {
+        if (src != msg.sender && allowance[src][msg.sender] != type(uint256).max) {
             require(allowance[src][msg.sender] >= wad, "INSUFFICIENT_ALLOWANCE");
             allowance[src][msg.sender] -= wad;
         }

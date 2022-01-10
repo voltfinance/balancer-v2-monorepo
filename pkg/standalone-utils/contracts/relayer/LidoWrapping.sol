@@ -12,8 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Address.sol";
 
@@ -40,7 +39,7 @@ abstract contract LidoWrapping is IBaseRelayerLibrary {
      */
     constructor(IERC20 wstETH) {
         // Safely disable stETH wrapping if no address has been passed for wstETH
-        _stETH = wstETH != IERC20(0) ? IwstETH(address(wstETH)).stETH() : IstETH(0);
+        _stETH = wstETH != IERC20(address(uint160(0))) ? IwstETH(address(wstETH)).stETH() : IstETH(address(uint160(0)));
         _wstETH = IwstETH(address(wstETH));
     }
 

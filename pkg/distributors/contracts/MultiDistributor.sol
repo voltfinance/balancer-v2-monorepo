@@ -12,8 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
@@ -319,7 +318,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
             distribution = _getDistribution(distributionId);
 
             IERC20 stakingToken = distribution.stakingToken;
-            require(stakingToken != IERC20(0), "DISTRIBUTION_DOES_NOT_EXIST");
+            require(stakingToken != IERC20(address(uint160(0))), "DISTRIBUTION_DOES_NOT_EXIST");
 
             UserStaking storage userStaking = _userStakings[stakingToken][msg.sender];
             require(userStaking.subscribedDistributions.add(distributionId), "ALREADY_SUBSCRIBED_DISTRIBUTION");
@@ -354,7 +353,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
             distribution = _getDistribution(distributionId);
 
             IERC20 stakingToken = distribution.stakingToken;
-            require(stakingToken != IERC20(0), "DISTRIBUTION_DOES_NOT_EXIST");
+            require(stakingToken != IERC20(address(uint160(0))), "DISTRIBUTION_DOES_NOT_EXIST");
 
             UserStaking storage userStaking = _userStakings[stakingToken][msg.sender];
 
@@ -645,7 +644,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
                     if (tokens[j] == distributionToken) {
                         amounts[j] += unclaimedTokens;
                         break;
-                    } else if (tokens[j] == IAsset(0)) {
+                    } else if (tokens[j] == IAsset(address(uint160(0)))) {
                         // If it's the first time we've seen this token
                         // record both its address and amount to transfer
                         tokens[j] = distributionToken;

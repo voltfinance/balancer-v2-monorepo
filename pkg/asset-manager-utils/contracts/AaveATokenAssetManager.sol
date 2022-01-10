@@ -19,8 +19,7 @@ import "./aave/IAaveIncentivesController.sol";
 import "./RewardsAssetManager.sol";
 import "@balancer-labs/v2-distributors/contracts/interfaces/IMultiDistributor.sol";
 
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 contract AaveATokenAssetManager is RewardsAssetManager {
     uint16 public constant REFERRAL_CODE = 0;
@@ -59,7 +58,7 @@ contract AaveATokenAssetManager is RewardsAssetManager {
         _initialize(poolId);
 
         distributor = IMultiDistributor(rewardsDistributor);
-        IERC20 poolAddress = IERC20(uint256(poolId) >> (12 * 8));
+        IERC20 poolAddress = IERC20(address(uint160(uint256(poolId) >> (12 * 8))));
         distributor.createDistribution(poolAddress, stkAave, 1);
 
         stkAave.approve(rewardsDistributor, type(uint256).max);
@@ -98,7 +97,7 @@ contract AaveATokenAssetManager is RewardsAssetManager {
         aaveIncentives.claimRewards(assets, type(uint256).max, address(this));
 
         // Forward to distributor
-        IERC20 poolAddress = IERC20(uint256(getPoolId()) >> (12 * 8));
+        IERC20 poolAddress = IERC20(address(uint160(uint256(getPoolId()) >> (12 * 8))));
         distributor.fundDistribution(
             distributor.getDistributionId(poolAddress, stkAave, address(this)),
             stkAave.balanceOf(address(this))

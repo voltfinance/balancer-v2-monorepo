@@ -12,8 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 import "./BaseWeightedPool.sol";
 
@@ -170,24 +169,24 @@ contract WeightedPool is BaseWeightedPool {
         // Immutable variables cannot be initialized inside an if statement, so we must do conditional assignments
         _token0 = tokens[0];
         _token1 = tokens[1];
-        _token2 = numTokens > 2 ? tokens[2] : IERC20(0);
-        _token3 = numTokens > 3 ? tokens[3] : IERC20(0);
-        _token4 = numTokens > 4 ? tokens[4] : IERC20(0);
-        _token5 = numTokens > 5 ? tokens[5] : IERC20(0);
-        _token6 = numTokens > 6 ? tokens[6] : IERC20(0);
-        _token7 = numTokens > 7 ? tokens[7] : IERC20(0);
-        _token8 = numTokens > 8 ? tokens[8] : IERC20(0);
-        _token9 = numTokens > 9 ? tokens[9] : IERC20(0);
-        _token10 = numTokens > 10 ? tokens[10] : IERC20(0);
-        _token11 = numTokens > 11 ? tokens[11] : IERC20(0);
-        _token12 = numTokens > 12 ? tokens[12] : IERC20(0);
-        _token13 = numTokens > 13 ? tokens[13] : IERC20(0);
-        _token14 = numTokens > 14 ? tokens[14] : IERC20(0);
-        _token15 = numTokens > 15 ? tokens[15] : IERC20(0);
-        _token16 = numTokens > 16 ? tokens[16] : IERC20(0);
-        _token17 = numTokens > 17 ? tokens[17] : IERC20(0);
-        _token18 = numTokens > 18 ? tokens[18] : IERC20(0);
-        _token19 = numTokens > 19 ? tokens[19] : IERC20(0);
+        _token2 = numTokens > 2 ? tokens[2] : IERC20(address(uint160(0)));
+        _token3 = numTokens > 3 ? tokens[3] : IERC20(address(uint160(0)));
+        _token4 = numTokens > 4 ? tokens[4] : IERC20(address(uint160(0)));
+        _token5 = numTokens > 5 ? tokens[5] : IERC20(address(uint160(0)));
+        _token6 = numTokens > 6 ? tokens[6] : IERC20(address(uint160(0)));
+        _token7 = numTokens > 7 ? tokens[7] : IERC20(address(uint160(0)));
+        _token8 = numTokens > 8 ? tokens[8] : IERC20(address(uint160(0)));
+        _token9 = numTokens > 9 ? tokens[9] : IERC20(address(uint160(0)));
+        _token10 = numTokens > 10 ? tokens[10] : IERC20(address(uint160(0)));
+        _token11 = numTokens > 11 ? tokens[11] : IERC20(address(uint160(0)));
+        _token12 = numTokens > 12 ? tokens[12] : IERC20(address(uint160(0)));
+        _token13 = numTokens > 13 ? tokens[13] : IERC20(address(uint160(0)));
+        _token14 = numTokens > 14 ? tokens[14] : IERC20(address(uint160(0)));
+        _token15 = numTokens > 15 ? tokens[15] : IERC20(address(uint160(0)));
+        _token16 = numTokens > 16 ? tokens[16] : IERC20(address(uint160(0)));
+        _token17 = numTokens > 17 ? tokens[17] : IERC20(address(uint160(0)));
+        _token18 = numTokens > 18 ? tokens[18] : IERC20(address(uint160(0)));
+        _token19 = numTokens > 19 ? tokens[19] : IERC20(address(uint160(0)));
 
         _scalingFactor0 = _computeScalingFactor(tokens[0]);
         _scalingFactor1 = _computeScalingFactor(tokens[1]);

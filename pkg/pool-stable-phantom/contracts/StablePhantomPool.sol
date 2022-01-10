@@ -12,8 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.7.0;
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 import "@balancer-labs/v2-pool-stable/contracts/StablePool.sol";
 import "@balancer-labs/v2-pool-utils/contracts/rates/PriceRateCache.sol";
@@ -124,7 +123,7 @@ contract StablePhantomPool is StablePool {
         );
 
         for (uint256 i = 0; i < params.tokens.length; i++) {
-            if (params.rateProviders[i] != IRateProvider(0)) {
+            if (params.rateProviders[i] != IRateProvider(address(uint160(0)))) {
                 _updateTokenRateCache(params.tokens[i], params.rateProviders[i], params.tokenRateCacheDurations[i]);
                 emit TokenRateProviderSet(params.tokens[i], params.rateProviders[i], params.tokenRateCacheDurations[i]);
             }
@@ -149,18 +148,18 @@ contract StablePhantomPool is StablePool {
             if (i < bptIndex) {
                 tokensAndBPTRateProviders[i] = params.rateProviders[i];
             } else if (i == bptIndex) {
-                tokensAndBPTRateProviders[i] = IRateProvider(0);
+                tokensAndBPTRateProviders[i] = IRateProvider(address(uint160(0)));
             } else {
                 tokensAndBPTRateProviders[i] = params.rateProviders[i - 1];
             }
         }
 
         // Immutable variables cannot be initialized inside an if statement, so we must do conditional assignments
-        _rateProvider0 = (tokensAndBPTRateProviders.length > 0) ? tokensAndBPTRateProviders[0] : IRateProvider(0);
-        _rateProvider1 = (tokensAndBPTRateProviders.length > 1) ? tokensAndBPTRateProviders[1] : IRateProvider(0);
-        _rateProvider2 = (tokensAndBPTRateProviders.length > 2) ? tokensAndBPTRateProviders[2] : IRateProvider(0);
-        _rateProvider3 = (tokensAndBPTRateProviders.length > 3) ? tokensAndBPTRateProviders[3] : IRateProvider(0);
-        _rateProvider4 = (tokensAndBPTRateProviders.length > 4) ? tokensAndBPTRateProviders[4] : IRateProvider(0);
+        _rateProvider0 = (tokensAndBPTRateProviders.length > 0) ? tokensAndBPTRateProviders[0] : IRateProvider(address(uint160(0)));
+        _rateProvider1 = (tokensAndBPTRateProviders.length > 1) ? tokensAndBPTRateProviders[1] : IRateProvider(address(uint160(0)));
+        _rateProvider2 = (tokensAndBPTRateProviders.length > 2) ? tokensAndBPTRateProviders[2] : IRateProvider(address(uint160(0)));
+        _rateProvider3 = (tokensAndBPTRateProviders.length > 3) ? tokensAndBPTRateProviders[3] : IRateProvider(address(uint160(0)));
+        _rateProvider4 = (tokensAndBPTRateProviders.length > 4) ? tokensAndBPTRateProviders[4] : IRateProvider(address(uint160(0)));
 
         _updateCachedProtocolSwapFeePercentage(params.vault);
     }
@@ -707,7 +706,7 @@ contract StablePhantomPool is StablePool {
             uint256 expires
         )
     {
-        _require(_getRateProvider(token) != IRateProvider(0), Errors.TOKEN_DOES_NOT_HAVE_RATE_PROVIDER);
+        _require(_getRateProvider(token) != IRateProvider(address(uint160(0))), Errors.TOKEN_DOES_NOT_HAVE_RATE_PROVIDER);
 
         rate = _tokenRateCaches[token].getRate();
         (duration, expires) = _tokenRateCaches[token].getTimestamps();

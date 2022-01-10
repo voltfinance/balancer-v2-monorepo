@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Ownable.sol";
@@ -25,8 +25,6 @@ import "@balancer-labs/v2-vault/contracts/interfaces/IAsset.sol";
 
 import "./interfaces/IDistributor.sol";
 import "./interfaces/IDistributorCallback.sol";
-
-pragma solidity ^0.7.0;
 
 contract MerkleRedeem is IDistributor, Ownable {
     using FixedPoint for uint256;

@@ -34,8 +34,7 @@ describe('CodeDeployer', function () {
     it('stores its constructor argument as its code', async () => {
       const receipt = await (await factory.deploy(data)).wait();
       const event = expectEvent.inReceipt(receipt, 'CodeDeployed');
-
-      expect(await ethers.provider.getCode(event.args.at)).to.equal(data);
+      expect(await ethers.provider.getCode(event.args[0])).to.equal(data);
     });
   }
 });

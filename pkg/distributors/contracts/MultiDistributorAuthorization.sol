@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.7.0;
+pragma solidity >=0.8.0;
 
 import "@balancer-labs/v2-solidity-utils/contracts/helpers/Authentication.sol";
 import "@balancer-labs/v2-vault/contracts/interfaces/IAuthorizer.sol";
@@ -36,7 +36,7 @@ abstract contract MultiDistributorAuthorization is Authentication {
         _;
     }
 
-    constructor(IVault vault) Authentication(bytes32(uint256(address(this)))) {
+    constructor(IVault vault) Authentication(bytes32(uint256(uint160(address(this))))) {
         // MultiDistributor is a singleton, so it simply uses its own address to disambiguate action identifiers
         _vault = vault;
     }

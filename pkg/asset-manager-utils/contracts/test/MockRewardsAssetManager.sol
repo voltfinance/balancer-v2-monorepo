@@ -12,11 +12,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 import "../RewardsAssetManager.sol";
-
-pragma solidity ^0.7.0;
 
 contract MockRewardsAssetManager is RewardsAssetManager {
     using Math for uint256;

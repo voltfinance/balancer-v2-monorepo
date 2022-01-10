@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma solidity ^0.7.0;
+pragma solidity >=0.8.0;
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20Permit.sol";
 import "@balancer-labs/v2-vault/contracts/interfaces/IVault.sol";
@@ -56,7 +56,7 @@ contract BalancerPoolToken is ERC20Permit {
      */
     function allowance(address owner, address spender) public view override returns (uint256) {
         if (spender == address(getVault())) {
-            return uint256(-1);
+            return type(uint256).max;
         } else {
             return super.allowance(owner, spender);
         }
@@ -75,7 +75,7 @@ contract BalancerPoolToken is ERC20Permit {
 
         _transfer(sender, recipient, amount);
 
-        if (msg.sender != sender && currentAllowance != uint256(-1)) {
+        if (msg.sender != sender && currentAllowance != type(uint256).max) {
             // Because of the previous require, we know that if msg.sender != sender then currentAllowance >= amount
             _approve(sender, msg.sender, currentAllowance - amount);
         }

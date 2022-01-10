@@ -38,10 +38,8 @@ describe('BaseManagedPoolFactory', function () {
 
   sharedBeforeEach('deploy factory & tokens', async () => {
     vault = await Vault.create();
-
     factory = await deploy('BaseManagedPoolFactory', { args: [vault.address] });
     createTime = await currentTimestamp();
-
     tokens = await TokenList.create(['MKR', 'DAI', 'SNX', 'BAT'], { sorted: true });
   });
 
@@ -68,6 +66,7 @@ describe('BaseManagedPoolFactory', function () {
     const receipt = await (await factory.connect(manager).create(newPoolParams)).wait();
 
     const event = expectEvent.inReceipt(receipt, 'PoolCreated');
+
     return deployedAt('ManagedPool', event.args.pool);
   }
 
