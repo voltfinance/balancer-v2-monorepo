@@ -1,6 +1,8 @@
 import fetch, { Response } from 'node-fetch';
 import { BuildInfo, CompilerInput, Network } from 'hardhat/types';
 
+import { hardhatBaseConfig } from '@balancer-labs/v2-common';
+
 import { getLongVersion } from '@nomiclabs/hardhat-etherscan/dist/src/solc/version';
 import { encodeArguments } from '@nomiclabs/hardhat-etherscan/dist/src/ABIEncoder';
 import { getLibraryLinks, Libraries } from '@nomiclabs/hardhat-etherscan/dist/src/solc/libraries';
@@ -12,10 +14,13 @@ import {
 } from '@nomiclabs/hardhat-etherscan/dist/src/solc/bytecode';
 
 import {
-  EtherscanURLs,
   getEtherscanEndpoints,
   retrieveContractBytecode,
 } from '@nomiclabs/hardhat-etherscan/dist/src/network/prober';
+
+import {
+  chainConfig
+} from '@nomiclabs/hardhat-etherscan/dist/src/ChainConfig';
 
 import {
   toVerifyRequest,
@@ -23,7 +28,8 @@ import {
   EtherscanVerifyRequest,
 } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanVerifyContractRequest';
 
-import EtherscanResponse, {
+import {
+  EtherscanResponse,
   delay,
   getVerificationStatus,
 } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanService';
@@ -32,6 +38,7 @@ import * as parser from '@solidity-parser/parser';
 
 import Task from './task';
 import logger from './logger';
+import { EtherscanNetworkEntry } from '@nomiclabs/hardhat-etherscan/dist/src/types';
 
 const MAX_VERIFICATION_INTENTS = 3;
 
@@ -55,8 +62,8 @@ export default class Verifier {
     const response = await this.verify(task, name, address, constructorArguments, libraries);
 
     if (response.isVerificationSuccess()) {
-      const etherscanAPIEndpoints = await getEtherscanEndpoints(this.network.provider, this.network.name);
-      const contractURL = new URL(`/address/${address}#code`, etherscanAPIEndpoints.browserURL);
+      const etherscanAPIEndpoints = await getEtherscanEndpoints(this.network.provider, this.network.name, chainConfig);
+      const contractURL = new URL(`/address/${address}#code`, etherscanAPIEndpoints.urls.apiURL);
       return contractURL.toString();
     } else if (intent < MAX_VERIFICATION_INTENTS && response.isBytecodeMissingInNetworkError()) {
       logger.info(`Could not find deployed bytecode in network, retrying ${intent++}/${MAX_VERIFICATION_INTENTS}...`);
@@ -99,7 +106,7 @@ export default class Verifier {
           );
 
     const solcFullVersion = await getLongVersion(contractInformation.solcVersion);
-    const etherscanAPIEndpoints = await getEtherscanEndpoints(this.network.provider, this.network.name);
+    const etherscanAPIEndpoints = await getEtherscanEndpoints(this.network.provider, this.network.name, chainConfig);
 
     const verificationStatus = await this.attemptVerification(
       etherscanAPIEndpoints,
@@ -116,7 +123,7 @@ export default class Verifier {
   }
 
   private async attemptVerification(
-    etherscanAPIEndpoints: EtherscanURLs,
+    etherscanAPIEndpoints: EtherscanNetworkEntry,
     contractInformation: ContractInformation,
     contractAddress: string,
     etherscanAPIKey: string,
@@ -135,11 +142,11 @@ export default class Verifier {
       constructorArguments: deployArgumentsEncoded,
     });
 
-    const response = await this.verifyContract(etherscanAPIEndpoints.apiURL, request);
+    const response = await this.verifyContract(etherscanAPIEndpoints.urls.apiURL, request);
     const pollRequest = toCheckStatusRequest({ apiKey: etherscanAPIKey, guid: response.message });
 
     await delay(700);
-    const verificationStatus = await getVerificationStatus(etherscanAPIEndpoints.apiURL, pollRequest);
+    const verificationStatus = await getVerificationStatus(etherscanAPIEndpoints.urls.apiURL, pollRequest);
 
     if (verificationStatus.isVerificationFailure() || verificationStatus.isVerificationSuccess()) {
       return verificationStatus;
