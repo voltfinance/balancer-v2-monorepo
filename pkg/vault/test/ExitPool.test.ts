@@ -577,7 +577,7 @@ describe('Exit Pool', () => {
                     exitAmounts: excessiveExitAmounts,
                     signature,
                   })
-                ).to.be.revertedWith('SUB_OVERFLOW');
+                ).to.be.reverted;
               })
             );
           });

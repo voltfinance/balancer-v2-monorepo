@@ -255,8 +255,8 @@ contract StablePhantomPool is StablePool {
                 uint256 newIndexOut = _skipBptIndex(indexOut);
 
                 uint256 amountInWithFee = _addSwapFeeAmount(request.amount);
-                balances[newIndexIn] = balances[newIndexIn].add(amountInWithFee);
-                balances[newIndexOut] = balances[newIndexOut].sub(amountOut);
+                balances[newIndexIn] = balances[newIndexIn] + amountInWithFee;
+                balances[newIndexOut] = balances[newIndexOut] - amountOut;
 
                 _trackDueProtocolFeeByInvariantIncrement(
                     invariant,
@@ -321,8 +321,8 @@ contract StablePhantomPool is StablePool {
                 uint256 newIndexOut = _skipBptIndex(indexOut);
 
                 uint256 amountInWithFee = _addSwapFeeAmount(amountIn);
-                balances[newIndexIn] = balances[newIndexIn].add(amountInWithFee);
-                balances[newIndexOut] = balances[newIndexOut].sub(request.amount);
+                balances[newIndexIn] = balances[newIndexIn] + amountInWithFee;
+                balances[newIndexOut] = balances[newIndexOut] - request.amount;
 
                 _trackDueProtocolFeeByInvariantIncrement(
                     invariant,
@@ -425,10 +425,10 @@ contract StablePhantomPool is StablePool {
             // This condition should always be met outside of rounding errors (for non-zero swap fees).
 
             uint256 protocolFeeAmount = protocolSwapFeePercentage.mulDown(
-                invariantRatio.sub(FixedPoint.ONE).mulDown(virtualSupply)
+                (invariantRatio - FixedPoint.ONE).mulDown(virtualSupply)
             );
 
-            _dueProtocolFeeBptAmount = _dueProtocolFeeBptAmount.add(protocolFeeAmount);
+            _dueProtocolFeeBptAmount = _dueProtocolFeeBptAmount + protocolFeeAmount;
 
             emit DueProtocolFeeIncreased(protocolFeeAmount);
         }
@@ -439,10 +439,10 @@ contract StablePhantomPool is StablePool {
      * single-token join or exit).
      */
     function _trackDueProtocolFeeByBpt(uint256 bptAmount, uint256 protocolSwapFeePercentage) private {
-        uint256 feeAmount = _addSwapFeeAmount(bptAmount).sub(bptAmount);
+        uint256 feeAmount = _addSwapFeeAmount(bptAmount) - bptAmount;
 
         uint256 protocolFeeAmount = feeAmount.mulDown(protocolSwapFeePercentage);
-        _dueProtocolFeeBptAmount = _dueProtocolFeeBptAmount.add(protocolFeeAmount);
+        _dueProtocolFeeBptAmount = _dueProtocolFeeBptAmount + protocolFeeAmount;
 
         emit DueProtocolFeeIncreased(protocolFeeAmount);
     }
@@ -481,7 +481,7 @@ contract StablePhantomPool is StablePool {
         // supply, and have the Vault pull those tokens from the sender as part of the join.
         // Note that the sender need not approve BPT for the Vault as the Vault already has infinite BPT allowance for
         // all accounts.
-        uint256 initialBpt = _MAX_TOKEN_BALANCE.sub(bptAmountOut);
+        uint256 initialBpt = _MAX_TOKEN_BALANCE - bptAmountOut;
         _mintPoolTokens(sender, initialBpt);
         amountsInIncludingBpt[_bptIndex] = initialBpt;
 
@@ -809,7 +809,7 @@ contract StablePhantomPool is StablePool {
     }
 
     function _skipBptIndex(uint256 index) internal view returns (uint256) {
-        return index < _bptIndex ? index : index.sub(1);
+        return index < _bptIndex ? index : index - 1;
     }
 
     function _dropBptItem(uint256[] memory amounts)
@@ -857,7 +857,7 @@ contract StablePhantomPool is StablePool {
     }
 
     function _getVirtualSupply(uint256 bptBalance) internal view returns (uint256) {
-        return totalSupply().sub(bptBalance).add(_dueProtocolFeeBptAmount);
+        return totalSupply() - bptBalance + _dueProtocolFeeBptAmount;
     }
 
     /**

@@ -134,7 +134,7 @@ abstract contract VaultActions is IBaseRelayerLibrary {
             // from it. Note that we assume that the recipient balance change has a positive sign (i.e. the recipient
             // received BPT).
             uint256 finalRecipientBPT = bpt.balanceOf(recipient);
-            _setChainedReferenceValue(outputReference, finalRecipientBPT.sub(maybeInitialRecipientBPT));
+            _setChainedReferenceValue(outputReference, finalRecipientBPT - maybeInitialRecipientBPT);
         }
     }
 
@@ -231,7 +231,7 @@ abstract contract VaultActions is IBaseRelayerLibrary {
         for (uint256 i = 0; i < outputReferences.length; i++) {
             _setChainedReferenceValue(
                 outputReferences[i].key,
-                finalRecipientTokenBalances[i].sub(initialRecipientBalances[i])
+                finalRecipientTokenBalances[i] - initialRecipientBalances[i]
             );
         }
     }

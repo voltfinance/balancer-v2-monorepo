@@ -16,6 +16,8 @@ import { lastBlockNumber, MONTH } from '@balancer-labs/v2-helpers/src/time';
 import { actionId } from '@balancer-labs/v2-helpers/src/models/misc/actions';
 import { PoolSpecialization } from '../../balancer-js/dist';
 
+import { sharedBeforeEach } from '@balancer-labs/v2-common/sharedBeforeEach';
+
 const OP_KIND = { WITHDRAW: 0, DEPOSIT: 1, UPDATE: 2 };
 
 describe('Asset Management', function () {
@@ -249,7 +251,7 @@ describe('Asset Management', function () {
                   const ops = [{ kind, poolId, token: tokens.DAI.address, amount }];
                   const withdraw = vault.connect(assetManager).managePoolBalance(ops);
 
-                  await expect(withdraw).to.be.revertedWith('SUB_OVERFLOW');
+                  await expect(withdraw).to.be.reverted;
                 });
               });
 
@@ -374,7 +376,7 @@ describe('Asset Management', function () {
 
                   it('reverts', async () => {
                     const ops = [{ kind, poolId, token: tokens.DAI.address, amount }];
-                    await expect(vault.connect(sender).managePoolBalance(ops)).to.be.revertedWith('SUB_OVERFLOW');
+                    await expect(vault.connect(sender).managePoolBalance(ops)).to.be.reverted;
                   });
                 });
 

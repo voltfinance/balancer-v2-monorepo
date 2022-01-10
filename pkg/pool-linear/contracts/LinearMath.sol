@@ -69,10 +69,10 @@ library LinearMath {
         }
 
         uint256 previousNominalMain = _toNominal(mainBalance, params);
-        uint256 afterNominalMain = _toNominal(mainBalance.add(mainIn), params);
-        uint256 deltaNominalMain = afterNominalMain.sub(previousNominalMain);
+        uint256 afterNominalMain = _toNominal(mainBalance + mainIn, params);
+        uint256 deltaNominalMain = afterNominalMain - previousNominalMain;
         uint256 invariant = _calcInvariant(previousNominalMain, wrappedBalance);
-        return Math.divDown(Math.mul(bptSupply, deltaNominalMain), invariant);
+        return Math.divDown(bptSupply * deltaNominalMain, invariant);
     }
 
     function _calcBptInPerMainOut(
@@ -85,10 +85,10 @@ library LinearMath {
         // Amount in, so we round up overall.
 
         uint256 previousNominalMain = _toNominal(mainBalance, params);
-        uint256 afterNominalMain = _toNominal(mainBalance.sub(mainOut), params);
-        uint256 deltaNominalMain = previousNominalMain.sub(afterNominalMain);
+        uint256 afterNominalMain = _toNominal(mainBalance - mainOut, params);
+        uint256 deltaNominalMain = previousNominalMain - afterNominalMain;
         uint256 invariant = _calcInvariant(previousNominalMain, wrappedBalance);
-        return Math.divUp(Math.mul(bptSupply, deltaNominalMain), invariant);
+        return Math.divUp(bptSupply * deltaNominalMain, invariant);
     }
 
     function _calcWrappedOutPerMainIn(
@@ -99,8 +99,8 @@ library LinearMath {
         // Amount out, so we round down overall.
 
         uint256 previousNominalMain = _toNominal(mainBalance, params);
-        uint256 afterNominalMain = _toNominal(mainBalance.add(mainIn), params);
-        return afterNominalMain.sub(previousNominalMain);
+        uint256 afterNominalMain = _toNominal(mainBalance + mainIn, params);
+        return afterNominalMain - previousNominalMain;
     }
 
     function _calcWrappedInPerMainOut(
@@ -111,8 +111,8 @@ library LinearMath {
         // Amount in, so we round up overall.
 
         uint256 previousNominalMain = _toNominal(mainBalance, params);
-        uint256 afterNominalMain = _toNominal(mainBalance.sub(mainOut), params);
-        return previousNominalMain.sub(afterNominalMain);
+        uint256 afterNominalMain = _toNominal(mainBalance - mainOut, params);
+        return previousNominalMain - afterNominalMain;
     }
 
     function _calcMainInPerBptOut(
@@ -133,10 +133,10 @@ library LinearMath {
 
         uint256 previousNominalMain = _toNominal(mainBalance, params);
         uint256 invariant = _calcInvariant(previousNominalMain, wrappedBalance);
-        uint256 deltaNominalMain = Math.divUp(Math.mul(invariant, bptOut), bptSupply);
-        uint256 afterNominalMain = previousNominalMain.add(deltaNominalMain);
+        uint256 deltaNominalMain = Math.divUp(invariant * bptOut, bptSupply);
+        uint256 afterNominalMain = previousNominalMain + deltaNominalMain;
         uint256 newMainBalance = _fromNominal(afterNominalMain, params);
-        return newMainBalance.sub(mainBalance);
+        return newMainBalance - mainBalance;
     }
 
     function _calcMainOutPerBptIn(
@@ -150,10 +150,10 @@ library LinearMath {
 
         uint256 previousNominalMain = _toNominal(mainBalance, params);
         uint256 invariant = _calcInvariant(previousNominalMain, wrappedBalance);
-        uint256 deltaNominalMain = Math.divDown(Math.mul(invariant, bptIn), bptSupply);
-        uint256 afterNominalMain = previousNominalMain.sub(deltaNominalMain);
+        uint256 deltaNominalMain = Math.divDown(invariant * bptIn, bptSupply);
+        uint256 afterNominalMain = previousNominalMain - deltaNominalMain;
         uint256 newMainBalance = _fromNominal(afterNominalMain, params);
-        return mainBalance.sub(newMainBalance);
+        return mainBalance - newMainBalance;
     }
 
     function _calcMainOutPerWrappedIn(
@@ -164,9 +164,9 @@ library LinearMath {
         // Amount out, so we round down overall.
 
         uint256 previousNominalMain = _toNominal(mainBalance, params);
-        uint256 afterNominalMain = previousNominalMain.sub(wrappedIn);
+        uint256 afterNominalMain = previousNominalMain - wrappedIn;
         uint256 newMainBalance = _fromNominal(afterNominalMain, params);
-        return mainBalance.sub(newMainBalance);
+        return mainBalance - newMainBalance;
     }
 
     function _calcMainInPerWrappedOut(
@@ -177,9 +177,9 @@ library LinearMath {
         // Amount in, so we round up overall.
 
         uint256 previousNominalMain = _toNominal(mainBalance, params);
-        uint256 afterNominalMain = previousNominalMain.add(wrappedOut);
+        uint256 afterNominalMain = previousNominalMain + wrappedOut;
         uint256 newMainBalance = _fromNominal(afterNominalMain, params);
-        return newMainBalance.sub(mainBalance);
+        return newMainBalance - mainBalance;
     }
 
     function _calcBptOutPerWrappedIn(
@@ -201,12 +201,12 @@ library LinearMath {
         uint256 nominalMain = _toNominal(mainBalance, params);
         uint256 previousInvariant = _calcInvariant(nominalMain, wrappedBalance);
 
-        uint256 newWrappedBalance = wrappedBalance.add(wrappedIn);
+        uint256 newWrappedBalance = wrappedBalance + wrappedIn;
         uint256 newInvariant = _calcInvariant(nominalMain, newWrappedBalance);
 
-        uint256 newBptBalance = Math.divDown(Math.mul(bptSupply, newInvariant), previousInvariant);
+        uint256 newBptBalance = Math.divDown(bptSupply * newInvariant, previousInvariant);
 
-        return newBptBalance.sub(bptSupply);
+        return newBptBalance - bptSupply;
     }
 
     function _calcBptInPerWrappedOut(
@@ -221,12 +221,12 @@ library LinearMath {
         uint256 nominalMain = _toNominal(mainBalance, params);
         uint256 previousInvariant = _calcInvariant(nominalMain, wrappedBalance);
 
-        uint256 newWrappedBalance = wrappedBalance.sub(wrappedOut);
+        uint256 newWrappedBalance = wrappedBalance - wrappedOut;
         uint256 newInvariant = _calcInvariant(nominalMain, newWrappedBalance);
 
-        uint256 newBptBalance = Math.divDown(Math.mul(bptSupply, newInvariant), previousInvariant);
+        uint256 newBptBalance = Math.divDown(bptSupply * newInvariant, previousInvariant);
 
-        return bptSupply.sub(newBptBalance);
+        return bptSupply - newBptBalance;
     }
 
     function _calcWrappedInPerBptOut(
@@ -248,10 +248,10 @@ library LinearMath {
         uint256 nominalMain = _toNominal(mainBalance, params);
         uint256 previousInvariant = _calcInvariant(nominalMain, wrappedBalance);
 
-        uint256 newBptBalance = bptSupply.add(bptOut);
-        uint256 newWrappedBalance = Math.divUp(Math.mul(newBptBalance, previousInvariant), bptSupply).sub(nominalMain);
+        uint256 newBptBalance = bptSupply + bptOut;
+        uint256 newWrappedBalance = Math.divUp(newBptBalance * previousInvariant, bptSupply) - nominalMain;
 
-        return newWrappedBalance.sub(wrappedBalance);
+        return newWrappedBalance - wrappedBalance;
     }
 
     function _calcWrappedOutPerBptIn(
@@ -266,14 +266,14 @@ library LinearMath {
         uint256 nominalMain = _toNominal(mainBalance, params);
         uint256 previousInvariant = _calcInvariant(nominalMain, wrappedBalance);
 
-        uint256 newBptBalance = bptSupply.sub(bptIn);
-        uint256 newWrappedBalance = Math.divUp(Math.mul(newBptBalance, previousInvariant), bptSupply).sub(nominalMain);
+        uint256 newBptBalance = bptSupply - bptIn;
+        uint256 newWrappedBalance = Math.divUp(newBptBalance * previousInvariant, bptSupply) - nominalMain;
 
-        return wrappedBalance.sub(newWrappedBalance);
+        return wrappedBalance - newWrappedBalance;
     }
 
     function _calcInvariant(uint256 nominalMainBalance, uint256 wrappedBalance) internal pure returns (uint256) {
-        return nominalMainBalance.add(wrappedBalance);
+        return nominalMainBalance + wrappedBalance;
     }
 
     function _toNominal(uint256 real, Params memory params) internal pure returns (uint256) {
@@ -282,12 +282,12 @@ library LinearMath {
 
         if (real < params.lowerTarget) {
             uint256 fees = (params.lowerTarget - real).mulDown(params.fee);
-            return real.sub(fees);
+            return real - fees;
         } else if (real <= params.upperTarget) {
             return real;
         } else {
             uint256 fees = (real - params.upperTarget).mulDown(params.fee);
-            return real.sub(fees);
+            return real - fees;
         }
     }
 
@@ -295,11 +295,11 @@ library LinearMath {
         // Since real = nominal + fees, rounding down fees is equivalent to rounding down real.
 
         if (nominal < params.lowerTarget) {
-            return (nominal.add(params.fee.mulDown(params.lowerTarget))).divDown(FixedPoint.ONE.add(params.fee));
+            return (nominal + params.fee.mulDown(params.lowerTarget)).divDown(FixedPoint.ONE + params.fee);
         } else if (nominal <= params.upperTarget) {
             return nominal;
         } else {
-            return (nominal.sub(params.fee.mulDown(params.upperTarget)).divDown(FixedPoint.ONE.sub(params.fee)));
+            return (nominal - params.fee.mulDown(params.upperTarget)).divDown(FixedPoint.ONE - params.fee);
         }
     }
 

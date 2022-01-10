@@ -200,15 +200,11 @@ describe('balance allocation', () => {
       });
 
       it('reverts on negative cash', async () => {
-        await expect(testDecreaseCash(0, 0, 1)).to.be.revertedWith('SUB_OVERFLOW');
-        await expect(testDecreaseCash(1, 0, 2)).to.be.revertedWith('SUB_OVERFLOW');
+        await expect(testDecreaseCash(0, 0, 1)).to.be.reverted;
+        await expect(testDecreaseCash(1, 0, 2)).to.be.reverted;
 
-        await expect(testDecreaseCash(MAX_UINT112.div(2), 0, MAX_UINT112.div(2).add(1))).to.be.revertedWith(
-          'SUB_OVERFLOW'
-        );
-        await expect(testDecreaseCash(MAX_UINT112.div(2), 0, MAX_UINT112.div(2).add(1))).to.be.revertedWith(
-          'SUB_OVERFLOW'
-        );
+        await expect(testDecreaseCash(MAX_UINT112.div(2), 0, MAX_UINT112.div(2).add(1))).to.be.reverted;
+        await expect(testDecreaseCash(MAX_UINT112.div(2), 0, MAX_UINT112.div(2).add(1))).to.be.reverted;
       });
     });
   });
@@ -255,12 +251,10 @@ describe('balance allocation', () => {
       });
 
       it('reverts when transferring more cash than available', async () => {
-        await expect(testCashToManaged(0, 0, 1)).to.be.revertedWith('SUB_OVERFLOW');
-        await expect(testCashToManaged(5, 0, 6)).to.be.revertedWith('SUB_OVERFLOW');
+        await expect(testCashToManaged(0, 0, 1)).to.be.reverted;
+        await expect(testCashToManaged(5, 0, 6)).to.be.reverted;
 
-        await expect(testCashToManaged(MAX_UINT112.div(5), 23, MAX_UINT112.div(5).add(1))).to.be.revertedWith(
-          'SUB_OVERFLOW'
-        );
+        await expect(testCashToManaged(MAX_UINT112.div(5), 23, MAX_UINT112.div(5).add(1))).to.be.reverted;
       });
     });
 
@@ -305,12 +299,10 @@ describe('balance allocation', () => {
       });
 
       it('reverts when cashing out more managed balance than available', async () => {
-        await expect(testManagedToCash(0, 0, 1)).to.be.revertedWith('SUB_OVERFLOW');
-        await expect(testManagedToCash(0, 5, 6)).to.be.revertedWith('SUB_OVERFLOW');
+        await expect(testManagedToCash(0, 0, 1)).to.be.reverted;
+        await expect(testManagedToCash(0, 5, 6)).to.be.reverted;
 
-        await expect(testManagedToCash(42, MAX_UINT112.div(5), MAX_UINT112.div(5).add(1))).to.be.revertedWith(
-          'SUB_OVERFLOW'
-        );
+        await expect(testManagedToCash(42, MAX_UINT112.div(5), MAX_UINT112.div(5).add(1))).to.be.reverted;
       });
     });
 

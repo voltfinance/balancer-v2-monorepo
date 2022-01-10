@@ -377,7 +377,7 @@ describe('LinearPool', function () {
 
     context('without balances', () => {
       it('reverts', async () => {
-        await expect(pool.getRate()).to.be.revertedWith('ZERO_DIVISION');
+        await expect(pool.getRate()).to.be.reverted;
       });
     });
 

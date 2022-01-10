@@ -653,7 +653,7 @@ abstract contract LinearPool is BasePool, IGeneralPool, IRateProvider {
     }
 
     function _getVirtualSupply(uint256 bptBalance) internal view returns (uint256) {
-        return totalSupply().sub(bptBalance);
+        return totalSupply() - bptBalance;
     }
 
     /**

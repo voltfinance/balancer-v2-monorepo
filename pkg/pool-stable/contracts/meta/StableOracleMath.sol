@@ -60,15 +60,15 @@ contract StableOracleMath {
         uint256 invariant = StableMath._calculateInvariant(amplificationParameter, _balances(balanceX, balanceY), true);
 
         uint256 a = (amplificationParameter * 2) / StableMath._AMP_PRECISION;
-        uint256 b = Math.mul(invariant, a).sub(invariant);
+        uint256 b = (invariant * a) - invariant;
 
-        uint256 axy2 = Math.mul(a * 2, balanceX).mulDown(balanceY); // n = 2
+        uint256 axy2 = (a * 2 * balanceX).mulDown(balanceY); // n = 2
 
         // dx = a.x.y.2 + a.y^2 - b.y
-        uint256 derivativeX = axy2.add(Math.mul(a, balanceY).mulDown(balanceY)).sub(b.mulDown(balanceY));
+        uint256 derivativeX = axy2 + (a * balanceY).mulDown(balanceY) - b.mulDown(balanceY);
 
         // dy = a.x.y.2 + a.x^2 - b.x
-        uint256 derivativeY = axy2.add(Math.mul(a, balanceX).mulDown(balanceX)).sub(b.mulDown(balanceX));
+        uint256 derivativeY = axy2 + (a * balanceX).mulDown(balanceX) - b.mulDown(balanceX);
 
         // The rounding direction is irrelevant as we're about to introduce a much larger error when converting to log
         // space. We use `divUp` as it prevents the result from being zero, which would make the logarithm revert. A
@@ -102,7 +102,7 @@ contract StableOracleMath {
         // The rounding direction is irrelevant as we're about to introduce a much larger error when converting to log
         // space. We use `mulUp` as it prevents the result from being zero, which would make the logarithm revert. A
         // result of zero is therefore only possible with zero balances, which are prevented via other means.
-        uint256 totalBalanceX = balanceX.add(spotPrice.mulUp(balanceY));
+        uint256 totalBalanceX = balanceX + (spotPrice.mulUp(balanceY));
         int256 logTotalBalanceX = LogCompression.toLowResLog(totalBalanceX);
 
         // Because we're subtracting two values in log space, this value has a larger error (+-0.0001 instead of

@@ -1,10 +1,4 @@
 const balancerErrorCodes: Record<string, string> = {
-  '000': 'ADD_OVERFLOW',
-  '001': 'SUB_OVERFLOW',
-  '002': 'SUB_UNDERFLOW',
-  '003': 'MUL_OVERFLOW',
-  '004': 'ZERO_DIVISION',
-  '005': 'DIV_INTERNAL',
   '006': 'X_OUT_OF_BOUNDS',
   '007': 'Y_OUT_OF_BOUNDS',
   '008': 'PRODUCT_OUT_OF_BOUNDS',

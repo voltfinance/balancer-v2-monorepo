@@ -104,7 +104,7 @@ contract MerkleRedeem is IDistributor, Ownable {
                 "Incorrect merkle proof"
             );
 
-            totalBalance = totalBalance.add(claim.balance);
+            totalBalance = totalBalance + claim.balance;
             claimed[claim.week][liquidityProvider] = true;
         }
     }

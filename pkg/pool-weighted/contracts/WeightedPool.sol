@@ -134,7 +134,7 @@ contract WeightedPool is BaseWeightedPool {
             uint256 normalizedWeight = normalizedWeights[i];
             _require(normalizedWeight >= WeightedMath._MIN_WEIGHT, Errors.MIN_WEIGHT);
 
-            normalizedSum = normalizedSum.add(normalizedWeight);
+            normalizedSum = normalizedSum + normalizedWeight;
             if (normalizedWeight > maxNormalizedWeight) {
                 maxWeightTokenIndex = i;
                 maxNormalizedWeight = normalizedWeight;

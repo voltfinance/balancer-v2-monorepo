@@ -763,7 +763,7 @@ describe('StablePool', function () {
 
       context('before initialized', () => {
         it('rate is zero', async () => {
-          await expect(pool.getRate()).to.be.revertedWith('ZERO_DIVISION');
+          await expect(pool.getRate()).to.be.reverted;
         });
       });
 

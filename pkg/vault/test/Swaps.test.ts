@@ -671,7 +671,7 @@ describe('Swaps', () => {
                     context('when requesting more than the available balance', () => {
                       const swaps = [{ in: 1, out: 0, amount: poolInitialBalance.div(2).add(1) }];
 
-                      assertSwapGivenInReverts({ swaps }, 'SUB_OVERFLOW');
+                      assertSwapGivenInReverts({ swaps });
                     });
                   });
 
@@ -1155,7 +1155,7 @@ describe('Swaps', () => {
                     context('when requesting more than the available balance', () => {
                       const swaps = [{ in: 1, out: 0, amount: poolInitialBalance.add(1) }];
 
-                      assertSwapGivenOutReverts({ swaps }, 'SUB_OVERFLOW');
+                      assertSwapGivenOutReverts({ swaps });
                     });
                   });
 

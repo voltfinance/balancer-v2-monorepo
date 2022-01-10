@@ -463,7 +463,7 @@ abstract contract BasePool is IBasePool, BasePoolAuthorization, BalancerPoolToke
      */
     function _addSwapFeeAmount(uint256 amount) internal view returns (uint256) {
         // This returns amount + fee amount, so we round up (favoring a higher fee amount).
-        return amount.divUp(FixedPoint.ONE.sub(getSwapFeePercentage()));
+        return amount.divUp(FixedPoint.ONE - getSwapFeePercentage());
     }
 
     /**
@@ -472,7 +472,7 @@ abstract contract BasePool is IBasePool, BasePoolAuthorization, BalancerPoolToke
     function _subtractSwapFeeAmount(uint256 amount) internal view returns (uint256) {
         // This returns amount - fee amount, so we round up (favoring a higher fee amount).
         uint256 feeAmount = amount.mulUp(getSwapFeePercentage());
-        return amount.sub(feeAmount);
+        return amount - feeAmount;
     }
 
     // Scaling
@@ -490,7 +490,7 @@ abstract contract BasePool is IBasePool, BasePoolAuthorization, BalancerPoolToke
         uint256 tokenDecimals = ERC20(address(token)).decimals();
 
         // Tokens with more than 18 decimals are not supported.
-        uint256 decimalsDifference = Math.sub(18, tokenDecimals);
+        uint256 decimalsDifference = 18 - tokenDecimals;
         return FixedPoint.ONE * 10**decimalsDifference;
     }
 

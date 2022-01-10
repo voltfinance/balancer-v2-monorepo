@@ -141,7 +141,7 @@ abstract contract Swaps is ReentrancyGuard, PoolBalances {
                 _receiveAsset(asset, toReceive, funds.sender, funds.fromInternalBalance);
 
                 if (_isETH(asset)) {
-                    wrappedEth = wrappedEth.add(toReceive);
+                    wrappedEth = wrappedEth + toReceive;
                 }
             } else if (delta < 0) {
                 uint256 toSend = uint256(-delta);
@@ -258,10 +258,8 @@ abstract contract Swaps is ReentrancyGuard, PoolBalances {
             previousTokenCalculated = _tokenCalculated(kind, tokenIn, tokenOut);
 
             // Accumulate Vault deltas across swaps
-            assetDeltas[batchSwapStep.assetInIndex] = assetDeltas[batchSwapStep.assetInIndex].add(amountIn.toInt256());
-            assetDeltas[batchSwapStep.assetOutIndex] = assetDeltas[batchSwapStep.assetOutIndex].sub(
-                amountOut.toInt256()
-            );
+            assetDeltas[batchSwapStep.assetInIndex] = assetDeltas[batchSwapStep.assetInIndex] + amountIn.toInt256();
+            assetDeltas[batchSwapStep.assetOutIndex] = assetDeltas[batchSwapStep.assetOutIndex] - amountOut.toInt256();
         }
     }
 

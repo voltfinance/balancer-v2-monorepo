@@ -298,11 +298,11 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
             // Fixed point (FP) multiplication between a non-FP (time) and FP (rate) returns a non-FP result.
             uint256 leftoverTokens = FixedPoint.mulDown(remainingTime, distribution.paymentRate);
             // Fixed point (FP) division of two non-FP values we get a FP result.
-            distribution.paymentRate = FixedPoint.divDown(amount.add(leftoverTokens), duration);
+            distribution.paymentRate = FixedPoint.divDown(amount + leftoverTokens, duration);
         }
 
         distribution.lastUpdateTime = block.timestamp;
-        distribution.periodFinish = block.timestamp.add(duration);
+        distribution.periodFinish = block.timestamp + duration;
         emit DistributionFunded(distributionId, amount);
     }
 
@@ -335,7 +335,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
                 userStaking.distributions[distributionId].userTokensPerStake = _updateGlobalTokensPerStake(
                     distribution
                 );
-                distribution.totalSupply = distribution.totalSupply.add(amount);
+                distribution.totalSupply = distribution.totalSupply + amount;
                 emit Staked(distributionId, msg.sender, amount);
             }
         }
@@ -536,7 +536,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         // Before we increase the recipient's staked balance we need to update all of their subscriptions
         _updateSubscribedDistributions(userStaking);
 
-        userStaking.balance = userStaking.balance.add(amount);
+        userStaking.balance = userStaking.balance + amount;
 
         EnumerableSet.Bytes32Set storage distributions = userStaking.subscribedDistributions;
         uint256 distributionsLength = distributions.length();
@@ -548,7 +548,7 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         for (uint256 i; i < distributionsLength; i++) {
             distributionId = distributions.unchecked_at(i);
             distribution = _getDistribution(distributionId);
-            distribution.totalSupply = distribution.totalSupply.add(amount);
+            distribution.totalSupply = distribution.totalSupply + amount;
             emit Staked(distributionId, recipient, amount);
         }
 
@@ -729,8 +729,8 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         uint256 unpaidDuration = _lastTimePaymentApplicable(distribution) - distribution.lastUpdateTime;
 
         // Note `paymentRate` and `distribution.globalTokensPerStake` are both fixed point values
-        uint256 unpaidTokensPerStake = unpaidDuration.mul(distribution.paymentRate).divDown(supply);
-        return distribution.globalTokensPerStake.add(unpaidTokensPerStake);
+        uint256 unpaidTokensPerStake = (unpaidDuration * distribution.paymentRate).divDown(supply);
+        return distribution.globalTokensPerStake + unpaidTokensPerStake;
     }
 
     /**
@@ -754,9 +754,8 @@ contract MultiDistributor is IMultiDistributor, ReentrancyGuard, MultiDistributo
         uint256 updatedGlobalTokensPerStake
     ) private view returns (uint256) {
         return
-            _unaccountedUnclaimedTokens(userStaking, userDistribution, updatedGlobalTokensPerStake).add(
-                userDistribution.unclaimedTokens
-            );
+            _unaccountedUnclaimedTokens(userStaking, userDistribution, updatedGlobalTokensPerStake) +
+                userDistribution.unclaimedTokens;
     }
 
     /**

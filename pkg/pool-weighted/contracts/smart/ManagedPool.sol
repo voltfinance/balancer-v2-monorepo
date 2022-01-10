@@ -437,7 +437,7 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
     function _subtractCollectedFees(uint256[] memory balances) private view {
         for (uint256 i = 0; i < _getTotalTokens(); ++i) {
             // We can use unchecked getters as we know the map has the same size (and order!) as the Pool's tokens.
-            balances[i] = balances[i].sub(_tokenCollectedManagementFees.unchecked_valueAt(i));
+            balances[i] = balances[i] - _tokenCollectedManagementFees.unchecked_valueAt(i);
         }
     }
 
@@ -579,7 +579,7 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
             uint256 managementFeeAmount = amount.mulDown(_managementSwapFeePercentage);
 
             uint256 previousCollectedFees = _tokenCollectedManagementFees.unchecked_valueAt(index);
-            _tokenCollectedManagementFees.unchecked_setAt(index, previousCollectedFees.add(managementFeeAmount));
+            _tokenCollectedManagementFees.unchecked_setAt(index, previousCollectedFees + managementFeeAmount);
         }
 
         super._processSwapFeeAmount(index, amount);
@@ -597,7 +597,7 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
             swapRequest.tokenIn,
             Errors.INVALID_TOKEN
         );
-        uint256 adjustedBalanceTokenIn = currentBalanceTokenIn.sub(
+        uint256 adjustedBalanceTokenIn = currentBalanceTokenIn - (
             _downscaleDown(tokenInUpscaledCollectedFees, _scalingFactor(swapRequest.tokenIn))
         );
 
@@ -605,7 +605,7 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
             swapRequest.tokenOut,
             Errors.INVALID_TOKEN
         );
-        uint256 adjustedBalanceTokenOut = currentBalanceTokenOut.sub(
+        uint256 adjustedBalanceTokenOut = currentBalanceTokenOut - (
             _downscaleDown(tokenOutUpscaledCollectedFees, _scalingFactor(swapRequest.tokenOut))
         );
 
@@ -638,9 +638,9 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
             _tokenState[token] = tokenState
                 .insertUint64(startWeights[i].compress64(), _START_WEIGHT_OFFSET)
                 .insertUint32(endWeight.compress32(), _END_WEIGHT_OFFSET)
-                .insertUint5(uint256(18).sub(ERC20(address(token)).decimals()), _DECIMAL_DIFF_OFFSET);
+                .insertUint5(uint256(18) - ERC20(address(token)).decimals(), _DECIMAL_DIFF_OFFSET);
 
-            normalizedSum = normalizedSum.add(endWeight);
+            normalizedSum = normalizedSum + endWeight;
         }
         // Ensure that the normalized weights sum to ONE
         _require(normalizedSum == FixedPoint.ONE, Errors.NORMALIZED_WEIGHT_INVARIANT);

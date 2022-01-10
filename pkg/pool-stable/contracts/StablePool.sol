@@ -120,7 +120,7 @@ contract StablePool is BaseGeneralPool, BaseMinimalSwapInfoPool, IRateProvider {
         _scalingFactor3 = totalTokens > 3 ? _computeScalingFactor(tokens[3]) : 0;
         _scalingFactor4 = totalTokens > 4 ? _computeScalingFactor(tokens[4]) : 0;
 
-        uint256 initialAmp = Math.mul(amplificationParameter, StableMath._AMP_PRECISION);
+        uint256 initialAmp = amplificationParameter * StableMath._AMP_PRECISION;
         _setAmplificationData(initialAmp);
     }
 
@@ -297,7 +297,7 @@ contract StablePool is BaseGeneralPool, BaseMinimalSwapInfoPool, IRateProvider {
         uint256[] memory dueProtocolFeeAmounts = _getDueProtocolFeeAmounts(balances, protocolSwapFeePercentage);
 
         // Update current balances by subtracting the protocol fee amounts
-        _mutateAmounts(balances, dueProtocolFeeAmounts, FixedPoint.sub);
+        _mutateAmountsSubtract(balances, dueProtocolFeeAmounts);
         (uint256 bptAmountOut, uint256[] memory amountsIn) = _doJoin(balances, scalingFactors, userData);
 
         // Update the invariant with the balances the Pool will have after the join, in order to compute the
@@ -402,7 +402,7 @@ contract StablePool is BaseGeneralPool, BaseMinimalSwapInfoPool, IRateProvider {
             dueProtocolFeeAmounts = _getDueProtocolFeeAmounts(balances, protocolSwapFeePercentage);
 
             // Update current balances by subtracting the protocol fee amounts
-            _mutateAmounts(balances, dueProtocolFeeAmounts, FixedPoint.sub);
+            _mutateAmountsSubtract(balances, dueProtocolFeeAmounts);
         } else {
             // If the contract is paused, swap protocol fee amounts are not charged to avoid extra calculations and
             // reduce the potential for errors.
@@ -566,7 +566,7 @@ contract StablePool is BaseGeneralPool, BaseMinimalSwapInfoPool, IRateProvider {
      * in the future.
      */
     function _updateInvariantAfterJoin(uint256[] memory balances, uint256[] memory amountsIn) private {
-        _mutateAmounts(balances, amountsIn, FixedPoint.add);
+        _mutateAmountsAdd(balances, amountsIn);
 
         (uint256 currentAmp, ) = _getAmplificationParameter();
         // This invariant is used only to compute the final balance when calculating the protocol fees. These are
@@ -579,7 +579,7 @@ contract StablePool is BaseGeneralPool, BaseMinimalSwapInfoPool, IRateProvider {
      * in the future.
      */
     function _updateInvariantAfterExit(uint256[] memory balances, uint256[] memory amountsOut) private {
-        _mutateAmounts(balances, amountsOut, FixedPoint.sub);
+        _mutateAmountsSubtract(balances, amountsOut);
 
         (uint256 currentAmp, ) = _getAmplificationParameter();
         // This invariant is used only to compute the final balance when calculating the protocol fees. These are
@@ -592,13 +592,26 @@ contract StablePool is BaseGeneralPool, BaseMinimalSwapInfoPool, IRateProvider {
      *
      * Equivalent to `amounts = amounts.map(mutation)`.
      */
-    function _mutateAmounts(
+    function _mutateAmountsAdd(
         uint256[] memory toMutate,
-        uint256[] memory arguments,
-        function(uint256, uint256) pure returns (uint256) mutation
+        uint256[] memory arguments
     ) private view {
         for (uint256 i = 0; i < _getTotalTokens(); ++i) {
-            toMutate[i] = mutation(toMutate[i], arguments[i]);
+            toMutate[i] = toMutate[i] + arguments[i];
+        }
+    }
+
+    /**
+     * @dev Mutates `amounts` by applying `mutation` with each entry in `arguments`.
+     *
+     * Equivalent to `amounts = amounts.map(mutation)`.
+     */
+    function _mutateAmountsSubtract(
+        uint256[] memory toMutate,
+        uint256[] memory arguments
+    ) private view {
+        for (uint256 i = 0; i < _getTotalTokens(); ++i) {
+            toMutate[i] = toMutate[i] - arguments[i];
         }
     }
 
@@ -628,20 +641,20 @@ contract StablePool is BaseGeneralPool, BaseMinimalSwapInfoPool, IRateProvider {
         _require(rawEndValue >= StableMath._MIN_AMP, Errors.MIN_AMP);
         _require(rawEndValue <= StableMath._MAX_AMP, Errors.MAX_AMP);
 
-        uint256 duration = Math.sub(endTime, block.timestamp);
+        uint256 duration = endTime - block.timestamp;
         _require(duration >= _MIN_UPDATE_TIME, Errors.AMP_END_TIME_TOO_CLOSE);
 
         (uint256 currentValue, bool isUpdating) = _getAmplificationParameter();
         _require(!isUpdating, Errors.AMP_ONGOING_UPDATE);
 
-        uint256 endValue = Math.mul(rawEndValue, StableMath._AMP_PRECISION);
+        uint256 endValue = rawEndValue * StableMath._AMP_PRECISION;
 
         // daily rate = (endValue / currentValue) / duration * 1 day
         // We perform all multiplications first to not reduce precision, and round the division up as we want to avoid
         // large rates. Note that these are regular integer multiplications and divisions, not fixed point.
         uint256 dailyRate = endValue > currentValue
-            ? Math.divUp(Math.mul(1 days, endValue), Math.mul(currentValue, duration))
-            : Math.divUp(Math.mul(1 days, currentValue), Math.mul(endValue, duration));
+            ? Math.divUp((1 days * endValue), (currentValue * duration))
+            : Math.divUp((1 days * currentValue), (endValue * duration));
         _require(dailyRate <= _MAX_AMP_UPDATE_DAILY_RATE, Errors.AMP_RATE_TOO_HIGH);
 
         _setAmplificationData(currentValue, endValue, block.timestamp, endTime);

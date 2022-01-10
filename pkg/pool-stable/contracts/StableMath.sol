@@ -71,7 +71,7 @@ library StableMath {
         uint256 sum = 0;
         uint256 numTokens = balances.length;
         for (uint256 i = 0; i < numTokens; i++) {
-            sum = sum.add(balances[i]);
+            sum = sum + balances[i];
         }
         if (sum == 0) {
             return 0;
@@ -84,17 +84,17 @@ library StableMath {
         for (uint256 i = 0; i < 255; i++) {
             uint256 P_D = balances[0] * numTokens;
             for (uint256 j = 1; j < numTokens; j++) {
-                P_D = Math.div(Math.mul(Math.mul(P_D, balances[j]), numTokens), invariant, roundUp);
+                P_D = Math.div(P_D * balances[j] * numTokens, invariant, roundUp);
             }
             prevInvariant = invariant;
             invariant = Math.div(
-                Math.mul(Math.mul(numTokens, invariant), invariant).add(
-                    Math.div(Math.mul(Math.mul(ampTimesTotal, sum), P_D), _AMP_PRECISION, roundUp)
-                ),
-                Math.mul(numTokens + 1, invariant).add(
+                (numTokens * invariant * invariant) + 
+                    Math.div(ampTimesTotal * sum * P_D, _AMP_PRECISION, roundUp)
+                ,
+                ((numTokens + 1) * invariant) +
                     // No need to use checked arithmetic for the amp precision, the amp is guaranteed to be at least 1
-                    Math.div(Math.mul(ampTimesTotal - _AMP_PRECISION, P_D), _AMP_PRECISION, !roundUp)
-                ),
+                    Math.div((ampTimesTotal - _AMP_PRECISION) * P_D, _AMP_PRECISION, !roundUp)
+                ,
                 roundUp
             );
 
@@ -134,7 +134,7 @@ library StableMath {
         **************************************************************************************************************/
 
         // Amount out, so we round down overall.
-        balances[tokenIndexIn] = balances[tokenIndexIn].add(tokenAmountIn);
+        balances[tokenIndexIn] = balances[tokenIndexIn] + tokenAmountIn;
 
         uint256 finalBalanceOut = _getTokenBalanceGivenInvariantAndAllOtherBalances(
             amplificationParameter,
@@ -147,7 +147,7 @@ library StableMath {
         // calling `_getTokenBalanceGivenInvariantAndAllOtherBalances` which doesn't alter the balances array.
         balances[tokenIndexIn] = balances[tokenIndexIn] - tokenAmountIn;
 
-        return balances[tokenIndexOut].sub(finalBalanceOut).sub(1);
+        return balances[tokenIndexOut] - finalBalanceOut - 1;
     }
 
     // Computes how many tokens must be sent to a pool if `tokenAmountOut` are sent given the
@@ -175,7 +175,7 @@ library StableMath {
         **************************************************************************************************************/
 
         // Amount in, so we round up overall.
-        balances[tokenIndexOut] = balances[tokenIndexOut].sub(tokenAmountOut);
+        balances[tokenIndexOut] = balances[tokenIndexOut] - tokenAmountOut;
 
         uint256 finalBalanceIn = _getTokenBalanceGivenInvariantAndAllOtherBalances(
             amplificationParameter,
@@ -188,7 +188,7 @@ library StableMath {
         // before calling `_getTokenBalanceGivenInvariantAndAllOtherBalances` which doesn't alter the balances array.
         balances[tokenIndexOut] = balances[tokenIndexOut] + tokenAmountOut;
 
-        return finalBalanceIn.sub(balances[tokenIndexIn]).add(1);
+        return finalBalanceIn - balances[tokenIndexIn] + 1;
     }
 
     function _calcBptOutGivenExactTokensIn(
@@ -204,7 +204,7 @@ library StableMath {
         // the current weights of each token, relative to this sum
         uint256 sumBalances = 0;
         for (uint256 i = 0; i < balances.length; i++) {
-            sumBalances = sumBalances.add(balances[i]);
+            sumBalances = sumBalances + balances[i];
         }
 
         // Calculate the weighted balance ratio without considering fees
@@ -213,8 +213,8 @@ library StableMath {
         uint256 invariantRatioWithFees = 0;
         for (uint256 i = 0; i < balances.length; i++) {
             uint256 currentWeight = balances[i].divDown(sumBalances);
-            balanceRatiosWithFee[i] = balances[i].add(amountsIn[i]).divDown(balances[i]);
-            invariantRatioWithFees = invariantRatioWithFees.add(balanceRatiosWithFee[i].mulDown(currentWeight));
+            balanceRatiosWithFee[i] = (balances[i] + amountsIn[i]).divDown(balances[i]);
+            invariantRatioWithFees = invariantRatioWithFees + (balanceRatiosWithFee[i].mulDown(currentWeight));
         }
 
         // Second loop calculates new amounts in, taking into account the fee on the percentage excess
@@ -224,15 +224,15 @@ library StableMath {
 
             // Check if the balance ratio is greater than the ideal ratio to charge fees or not
             if (balanceRatiosWithFee[i] > invariantRatioWithFees) {
-                uint256 nonTaxableAmount = balances[i].mulDown(invariantRatioWithFees.sub(FixedPoint.ONE));
-                uint256 taxableAmount = amountsIn[i].sub(nonTaxableAmount);
+                uint256 nonTaxableAmount = balances[i].mulDown(invariantRatioWithFees - FixedPoint.ONE);
+                uint256 taxableAmount = amountsIn[i] - nonTaxableAmount;
                 // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
-                amountInWithoutFee = nonTaxableAmount.add(taxableAmount.mulDown(FixedPoint.ONE - swapFeePercentage));
+                amountInWithoutFee = nonTaxableAmount + (taxableAmount.mulDown(FixedPoint.ONE - swapFeePercentage));
             } else {
                 amountInWithoutFee = amountsIn[i];
             }
 
-            newBalances[i] = balances[i].add(amountInWithoutFee);
+            newBalances[i] = balances[i] + amountInWithoutFee;
         }
 
         // Get current and new invariants, taking swap fees into account
@@ -262,7 +262,7 @@ library StableMath {
         uint256 currentInvariant = _calculateInvariant(amp, balances, true);
 
         // Calculate new invariant
-        uint256 newInvariant = bptTotalSupply.add(bptAmountOut).divUp(bptTotalSupply).mulUp(currentInvariant);
+        uint256 newInvariant = (bptTotalSupply + bptAmountOut).divUp(bptTotalSupply).mulUp(currentInvariant);
 
         // Calculate amount in without fee.
         uint256 newBalanceTokenIndex = _getTokenBalanceGivenInvariantAndAllOtherBalances(
@@ -271,13 +271,13 @@ library StableMath {
             newInvariant,
             tokenIndex
         );
-        uint256 amountInWithoutFee = newBalanceTokenIndex.sub(balances[tokenIndex]);
+        uint256 amountInWithoutFee = newBalanceTokenIndex - balances[tokenIndex];
 
         // First calculate the sum of all token balances, which will be used to calculate
         // the current weight of each token
         uint256 sumBalances = 0;
         for (uint256 i = 0; i < balances.length; i++) {
-            sumBalances = sumBalances.add(balances[i]);
+            sumBalances = sumBalances + balances[i];
         }
 
         // We can now compute how much extra balance is being deposited and used in virtual swaps, and charge swap fees
@@ -285,10 +285,10 @@ library StableMath {
         uint256 currentWeight = balances[tokenIndex].divDown(sumBalances);
         uint256 taxablePercentage = currentWeight.complement();
         uint256 taxableAmount = amountInWithoutFee.mulUp(taxablePercentage);
-        uint256 nonTaxableAmount = amountInWithoutFee.sub(taxableAmount);
+        uint256 nonTaxableAmount = amountInWithoutFee - taxableAmount;
 
         // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
-        return nonTaxableAmount.add(taxableAmount.divUp(FixedPoint.ONE - swapFeePercentage));
+        return nonTaxableAmount + (taxableAmount.divUp(FixedPoint.ONE - swapFeePercentage));
     }
 
     /*
@@ -309,7 +309,7 @@ library StableMath {
         // the current weights of each token relative to this sum
         uint256 sumBalances = 0;
         for (uint256 i = 0; i < balances.length; i++) {
-            sumBalances = sumBalances.add(balances[i]);
+            sumBalances = sumBalances + balances[i];
         }
 
         // Calculate the weighted balance ratio without considering fees
@@ -317,8 +317,8 @@ library StableMath {
         uint256 invariantRatioWithoutFees = 0;
         for (uint256 i = 0; i < balances.length; i++) {
             uint256 currentWeight = balances[i].divUp(sumBalances);
-            balanceRatiosWithoutFee[i] = balances[i].sub(amountsOut[i]).divUp(balances[i]);
-            invariantRatioWithoutFees = invariantRatioWithoutFees.add(balanceRatiosWithoutFee[i].mulUp(currentWeight));
+            balanceRatiosWithoutFee[i] = (balances[i] - amountsOut[i]).divUp(balances[i]);
+            invariantRatioWithoutFees = invariantRatioWithoutFees + (balanceRatiosWithoutFee[i].mulUp(currentWeight));
         }
 
         // Second loop calculates new amounts in, taking into account the fee on the percentage excess
@@ -330,14 +330,14 @@ library StableMath {
             uint256 amountOutWithFee;
             if (invariantRatioWithoutFees > balanceRatiosWithoutFee[i]) {
                 uint256 nonTaxableAmount = balances[i].mulDown(invariantRatioWithoutFees.complement());
-                uint256 taxableAmount = amountsOut[i].sub(nonTaxableAmount);
+                uint256 taxableAmount = amountsOut[i] - nonTaxableAmount;
                 // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
-                amountOutWithFee = nonTaxableAmount.add(taxableAmount.divUp(FixedPoint.ONE - swapFeePercentage));
+                amountOutWithFee = nonTaxableAmount + (taxableAmount.divUp(FixedPoint.ONE - swapFeePercentage));
             } else {
                 amountOutWithFee = amountsOut[i];
             }
 
-            newBalances[i] = balances[i].sub(amountOutWithFee);
+            newBalances[i] = balances[i] - amountOutWithFee;
         }
 
         // Get current and new invariants, taking into account swap fees
@@ -361,7 +361,7 @@ library StableMath {
 
         // Get the current and new invariants. Since we need a bigger new invariant, we round the current one up.
         uint256 currentInvariant = _calculateInvariant(amp, balances, true);
-        uint256 newInvariant = bptTotalSupply.sub(bptAmountIn).divUp(bptTotalSupply).mulUp(currentInvariant);
+        uint256 newInvariant = (bptTotalSupply - bptAmountIn).divUp(bptTotalSupply).mulUp(currentInvariant);
 
         // Calculate amount out without fee
         uint256 newBalanceTokenIndex = _getTokenBalanceGivenInvariantAndAllOtherBalances(
@@ -370,13 +370,13 @@ library StableMath {
             newInvariant,
             tokenIndex
         );
-        uint256 amountOutWithoutFee = balances[tokenIndex].sub(newBalanceTokenIndex);
+        uint256 amountOutWithoutFee = balances[tokenIndex] - newBalanceTokenIndex;
 
         // First calculate the sum of all token balances, which will be used to calculate
         // the current weight of each token
         uint256 sumBalances = 0;
         for (uint256 i = 0; i < balances.length; i++) {
-            sumBalances = sumBalances.add(balances[i]);
+            sumBalances = sumBalances + balances[i];
         }
 
         // We can now compute how much excess balance is being withdrawn as a result of the virtual swaps, which result
@@ -387,10 +387,10 @@ library StableMath {
         // Swap fees are typically charged on 'token in', but there is no 'token in' here, so we apply it
         // to 'token out'. This results in slightly larger price impact. Fees are rounded up.
         uint256 taxableAmount = amountOutWithoutFee.mulUp(taxablePercentage);
-        uint256 nonTaxableAmount = amountOutWithoutFee.sub(taxableAmount);
+        uint256 nonTaxableAmount = amountOutWithoutFee - taxableAmount;
 
         // No need to use checked arithmetic for the swap fee, it is guaranteed to be lower than 50%
-        return nonTaxableAmount.add(taxableAmount.mulDown(FixedPoint.ONE - swapFeePercentage));
+        return nonTaxableAmount + (taxableAmount.mulDown(FixedPoint.ONE - swapFeePercentage));
     }
 
     function _calcTokensOutGivenExactBptIn(
@@ -474,32 +474,29 @@ library StableMath {
         uint256 sum = balances[0];
         uint256 P_D = balances[0] * balances.length;
         for (uint256 j = 1; j < balances.length; j++) {
-            P_D = Math.divDown(Math.mul(Math.mul(P_D, balances[j]), balances.length), invariant);
-            sum = sum.add(balances[j]);
+            P_D = Math.divDown(P_D * balances[j] * balances.length, invariant);
+            sum = sum + balances[j];
         }
         // No need to use safe math, based on the loop above `sum` is greater than or equal to `balances[tokenIndex]`
         sum = sum - balances[tokenIndex];
 
-        uint256 inv2 = Math.mul(invariant, invariant);
+        uint256 inv2 = invariant * invariant;
         // We remove the balance from c by multiplying it
-        uint256 c = Math.mul(
-            Math.mul(Math.divUp(inv2, Math.mul(ampTimesTotal, P_D)), _AMP_PRECISION),
-            balances[tokenIndex]
-        );
-        uint256 b = sum.add(Math.mul(Math.divDown(invariant, ampTimesTotal), _AMP_PRECISION));
+        uint256 c = Math.divUp(inv2, ampTimesTotal * P_D) * _AMP_PRECISION * balances[tokenIndex];
+        uint256 b = sum + ((Math.divDown(invariant, ampTimesTotal) * _AMP_PRECISION));
 
         // We iterate to find the balance
         uint256 prevTokenBalance = 0;
         // We multiply the first iteration outside the loop with the invariant to set the value of the
         // initial approximation.
-        uint256 tokenBalance = Math.divUp(inv2.add(c), invariant.add(b));
+        uint256 tokenBalance = Math.divUp(inv2 + c, invariant + b);
 
         for (uint256 i = 0; i < 255; i++) {
             prevTokenBalance = tokenBalance;
 
             tokenBalance = Math.divUp(
-                Math.mul(tokenBalance, tokenBalance).add(c),
-                Math.mul(tokenBalance, 2).add(b).sub(invariant)
+                (tokenBalance * tokenBalance) + c,
+                (tokenBalance * 2) + b - invariant
             );
 
             if (tokenBalance > prevTokenBalance) {

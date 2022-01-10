@@ -94,7 +94,7 @@ abstract contract UserBalance is ReentrancyGuard, AssetTransfersHandler, VaultAu
 
                     // Keep track of all ETH wrapped into WETH as part of a deposit.
                     if (_isETH(asset)) {
-                        ethWrapped = ethWrapped.add(amount);
+                        ethWrapped = ethWrapped + amount;
                     }
                 } else {
                     // Transfers don't support ETH.
@@ -168,7 +168,7 @@ abstract contract UserBalance is ReentrancyGuard, AssetTransfersHandler, VaultAu
         uint256 amount
     ) internal override {
         uint256 currentBalance = _getInternalBalance(account, token);
-        uint256 newBalance = currentBalance.add(amount);
+        uint256 newBalance = currentBalance + amount;
         _setInternalBalance(account, token, newBalance, amount.toInt256());
     }
 

@@ -115,7 +115,7 @@ abstract contract RewardsAssetManager is IAssetManager {
     function _maxInvestableBalance(uint256 aum) internal view returns (int256) {
         (uint256 poolCash, , , ) = getVault().getPoolTokenInfo(_poolId, getToken());
         // Calculate the managed portion of funds locally as the Vault is unaware of returns
-        return int256(FixedPoint.mulDown(poolCash.add(aum), _config.targetPercentage)) - int256(aum);
+        return int256(FixedPoint.mulDown(poolCash + aum, _config.targetPercentage)) - int256(aum);
     }
 
     // Reporting
@@ -241,7 +241,7 @@ abstract contract RewardsAssetManager is IAssetManager {
      * @notice Determines whether the pool should rebalance given the provided balances
      */
     function shouldRebalance(uint256 cash, uint256 managed) public view override returns (bool) {
-        uint256 investedPercentage = cash.mul(FixedPoint.ONE).divDown(cash.add(managed));
+        uint256 investedPercentage = (cash * FixedPoint.ONE).divDown(cash + managed);
         InvestmentConfig memory config = _config;
         return
             investedPercentage > config.upperCriticalPercentage || investedPercentage < config.lowerCriticalPercentage;

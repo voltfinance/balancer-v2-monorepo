@@ -387,7 +387,7 @@ contract LiquidityBootstrappingPool is BaseWeightedPool, ReentrancyGuard {
                 .insertUint31(startWeights[i].compress31(), _START_WEIGHT_OFFSET + i * 31)
                 .insertUint16(endWeight.compress16(), _END_WEIGHT_OFFSET + i * 16);
 
-            normalizedSum = normalizedSum.add(endWeight);
+            normalizedSum = normalizedSum + endWeight;
         }
         // Ensure that the normalized weights sum to ONE
         _require(normalizedSum == FixedPoint.ONE, Errors.NORMALIZED_WEIGHT_INVARIANT);
@@ -407,10 +407,10 @@ contract LiquidityBootstrappingPool is BaseWeightedPool, ReentrancyGuard {
 
         if (startWeight > endWeight) {
             uint256 weightDelta = pctProgress.mulDown(startWeight - endWeight);
-            return startWeight.sub(weightDelta);
+            return startWeight - weightDelta;
         } else {
             uint256 weightDelta = pctProgress.mulDown(endWeight - startWeight);
-            return startWeight.add(weightDelta);
+            return startWeight+ weightDelta;
         }
     }
 

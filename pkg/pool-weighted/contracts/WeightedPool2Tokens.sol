@@ -132,7 +132,7 @@ contract WeightedPool2Tokens is
         _require(params.normalizedWeight1 >= WeightedMath._MIN_WEIGHT, Errors.MIN_WEIGHT);
 
         // Ensure that the normalized weights sum to ONE
-        uint256 normalizedSum = params.normalizedWeight0.add(params.normalizedWeight1);
+        uint256 normalizedSum = params.normalizedWeight0 + params.normalizedWeight1;
         _require(normalizedSum == FixedPoint.ONE, Errors.NORMALIZED_WEIGHT_INVARIANT);
 
         _normalizedWeight0 = params.normalizedWeight0;
@@ -278,7 +278,7 @@ contract WeightedPool2Tokens is
             // Fees are subtracted before scaling, to reduce the complexity of the rounding direction analysis.
             // This is amount - fee amount, so we round up (favoring a higher fee amount).
             uint256 feeAmount = request.amount.mulUp(getSwapFeePercentage());
-            request.amount = _upscale(request.amount.sub(feeAmount), scalingFactorTokenIn);
+            request.amount = _upscale(request.amount - feeAmount, scalingFactorTokenIn);
 
             uint256 amountOut = _onSwapGivenIn(
                 request,
@@ -445,7 +445,7 @@ contract WeightedPool2Tokens is
 
         // Set the initial BPT to the value of the invariant times the number of tokens. This makes BPT supply more
         // consistent in Pools with similar compositions but different number of tokens.
-        uint256 bptAmountOut = Math.mul(invariantAfterJoin, 2);
+        uint256 bptAmountOut = invariantAfterJoin * 2;
 
         _lastInvariant = invariantAfterJoin;
 
@@ -501,12 +501,12 @@ contract WeightedPool2Tokens is
         );
 
         // Update current balances by subtracting the protocol fee amounts
-        _mutateAmounts(balances, dueProtocolFeeAmounts, FixedPoint.sub);
+        _mutateAmountsSubtract(balances, dueProtocolFeeAmounts);
         (uint256 bptAmountOut, uint256[] memory amountsIn) = _doJoin(balances, normalizedWeights, userData);
 
         // Update the invariant with the balances the Pool will have after the join, in order to compute the
         // protocol swap fee amounts due in future joins and exits.
-        _mutateAmounts(balances, amountsIn, FixedPoint.add);
+        _mutateAmountsAdd(balances, amountsIn);
         _lastInvariant = WeightedMath._calculateInvariant(normalizedWeights, balances);
 
         return (bptAmountOut, amountsIn, dueProtocolFeeAmounts);
@@ -687,7 +687,7 @@ contract WeightedPool2Tokens is
             );
 
             // Update current balances by subtracting the protocol fee amounts
-            _mutateAmounts(balances, dueProtocolFeeAmounts, FixedPoint.sub);
+            _mutateAmountsSubtract(balances, dueProtocolFeeAmounts);
         } else {
             // If the contract is paused, swap protocol fee amounts are not charged and the oracle is not updated
             // to avoid extra calculations and reduce the potential for errors.
@@ -698,7 +698,7 @@ contract WeightedPool2Tokens is
 
         // Update the invariant with the balances the Pool will have after the exit, in order to compute the
         // protocol swap fees due in future joins and exits.
-        _mutateAmounts(balances, amountsOut, FixedPoint.sub);
+        _mutateAmountsSubtract(balances, amountsOut);
         _lastInvariant = WeightedMath._calculateInvariant(normalizedWeights, balances);
 
         return (bptAmountIn, amountsOut, dueProtocolFeeAmounts);
@@ -970,13 +970,25 @@ contract WeightedPool2Tokens is
      *
      * Equivalent to `amounts = amounts.map(mutation)`.
      */
-    function _mutateAmounts(
+    function _mutateAmountsAdd(
         uint256[] memory toMutate,
-        uint256[] memory arguments,
-        function(uint256, uint256) pure returns (uint256) mutation
+        uint256[] memory arguments
     ) private pure {
-        toMutate[0] = mutation(toMutate[0], arguments[0]);
-        toMutate[1] = mutation(toMutate[1], arguments[1]);
+        toMutate[0] = toMutate[0] + arguments[0];
+        toMutate[1] = toMutate[1] + arguments[1];
+    }
+
+    /**
+     * @dev Mutates `amounts` by applying `mutation` with each entry in `arguments`.
+     *
+     * Equivalent to `amounts = amounts.map(mutation)`.
+     */
+    function _mutateAmountsSubtract(
+        uint256[] memory toMutate,
+        uint256[] memory arguments
+    ) private pure {
+        toMutate[0] = toMutate[0] - arguments[0];
+        toMutate[1] = toMutate[1] - arguments[1];
     }
 
     /**
@@ -985,7 +997,7 @@ contract WeightedPool2Tokens is
      */
     function getRate() public view returns (uint256) {
         // The initial BPT supply is equal to the invariant times the number of tokens.
-        return Math.mul(getInvariant(), 2).divDown(totalSupply());
+        return (getInvariant() * 2).divDown(totalSupply());
     }
 
     // Scaling
@@ -999,7 +1011,7 @@ contract WeightedPool2Tokens is
         uint256 tokenDecimals = ERC20(address(token)).decimals();
 
         // Tokens with more than 18 decimals are not supported.
-        uint256 decimalsDifference = Math.sub(18, tokenDecimals);
+        uint256 decimalsDifference = 18 - tokenDecimals;
         return 10**decimalsDifference;
     }
 
@@ -1016,7 +1028,7 @@ contract WeightedPool2Tokens is
      * scaling or not.
      */
     function _upscale(uint256 amount, uint256 scalingFactor) internal pure returns (uint256) {
-        return Math.mul(amount, scalingFactor);
+        return amount * scalingFactor;
     }
 
     /**
@@ -1024,8 +1036,8 @@ contract WeightedPool2Tokens is
      * instead *mutates* the `amounts` array.
      */
     function _upscaleArray(uint256[] memory amounts) internal view {
-        amounts[0] = Math.mul(amounts[0], _scalingFactor(true));
-        amounts[1] = Math.mul(amounts[1], _scalingFactor(false));
+        amounts[0] = amounts[0] * _scalingFactor(true);
+        amounts[1] = amounts[1] * _scalingFactor(false);
     }
 
     /**

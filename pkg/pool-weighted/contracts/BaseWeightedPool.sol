@@ -166,7 +166,7 @@ abstract contract BaseWeightedPool is BaseMinimalSwapInfoPool {
 
         // Set the initial BPT to the value of the invariant times the number of tokens. This makes BPT supply more
         // consistent in Pools with similar compositions but different number of tokens.
-        uint256 bptAmountOut = Math.mul(invariantAfterJoin, _getTotalTokens());
+        uint256 bptAmountOut = invariantAfterJoin * _getTotalTokens();
 
         _lastInvariant = invariantAfterJoin;
 
@@ -214,7 +214,7 @@ abstract contract BaseWeightedPool is BaseMinimalSwapInfoPool {
         );
 
         // Update current balances by subtracting the protocol fee amounts
-        _mutateAmounts(balances, dueProtocolFeeAmounts, FixedPoint.sub);
+        _mutateAmountsSubtract(balances, dueProtocolFeeAmounts);
         (uint256 bptAmountOut, uint256[] memory amountsIn) = _doJoin(
             balances,
             normalizedWeights,
@@ -362,7 +362,7 @@ abstract contract BaseWeightedPool is BaseMinimalSwapInfoPool {
             );
 
             // Update current balances by subtracting the protocol fee amounts
-            _mutateAmounts(balances, dueProtocolFeeAmounts, FixedPoint.sub);
+            _mutateAmountsSubtract(balances, dueProtocolFeeAmounts);
         } else {
             // If the contract is paused, swap protocol fee amounts are not charged to avoid extra calculations and
             // reduce the potential for errors.
@@ -514,7 +514,7 @@ abstract contract BaseWeightedPool is BaseMinimalSwapInfoPool {
         uint256[] memory amountsIn,
         uint256[] memory normalizedWeights
     ) private view returns (uint256) {
-        _mutateAmounts(balances, amountsIn, FixedPoint.add);
+        _mutateAmountsAdd(balances, amountsIn);
         return WeightedMath._calculateInvariant(normalizedWeights, balances);
     }
 
@@ -523,7 +523,7 @@ abstract contract BaseWeightedPool is BaseMinimalSwapInfoPool {
         uint256[] memory amountsOut,
         uint256[] memory normalizedWeights
     ) private view returns (uint256) {
-        _mutateAmounts(balances, amountsOut, FixedPoint.sub);
+        _mutateAmountsSubtract(balances, amountsOut);
         return WeightedMath._calculateInvariant(normalizedWeights, balances);
     }
 
@@ -532,13 +532,26 @@ abstract contract BaseWeightedPool is BaseMinimalSwapInfoPool {
      *
      * Equivalent to `amounts = amounts.map(mutation)`.
      */
-    function _mutateAmounts(
+    function _mutateAmountsAdd(
         uint256[] memory toMutate,
-        uint256[] memory arguments,
-        function(uint256, uint256) pure returns (uint256) mutation
+        uint256[] memory arguments
     ) private view {
         for (uint256 i = 0; i < _getTotalTokens(); ++i) {
-            toMutate[i] = mutation(toMutate[i], arguments[i]);
+            toMutate[i] = toMutate[i] + arguments[i];
+        }
+    }
+
+    /**
+     * @dev Mutates `amounts` by applying `mutation` with each entry in `arguments`.
+     *
+     * Equivalent to `amounts = amounts.map(mutation)`.
+     */
+    function _mutateAmountsSubtract(
+        uint256[] memory toMutate,
+        uint256[] memory arguments
+    ) private view {
+        for (uint256 i = 0; i < _getTotalTokens(); ++i) {
+            toMutate[i] = toMutate[i] - arguments[i];
         }
     }
 
@@ -548,6 +561,6 @@ abstract contract BaseWeightedPool is BaseMinimalSwapInfoPool {
      */
     function getRate() public view returns (uint256) {
         // The initial BPT supply is equal to the invariant times the number of tokens.
-        return Math.mul(getInvariant(), _getTotalTokens()).divDown(totalSupply());
+        return (getInvariant() * _getTotalTokens()).divDown(totalSupply());
     }
 }

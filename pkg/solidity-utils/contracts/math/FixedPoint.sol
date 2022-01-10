@@ -26,32 +26,13 @@ library FixedPoint {
     // Minimum base for the power function when the exponent is 'free' (larger than ONE).
     uint256 internal constant MIN_POW_BASE_FREE_EXPONENT = 0.7e18;
 
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Fixed Point addition is the same as regular checked addition
-
-        uint256 c = a + b;
-        _require(c >= a, Errors.ADD_OVERFLOW);
-        return c;
-    }
-
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        // Fixed Point addition is the same as regular checked addition
-
-        _require(b <= a, Errors.SUB_OVERFLOW);
-        uint256 c = a - b;
-        return c;
-    }
-
     function mulDown(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 product = a * b;
-        _require(a == 0 || product / a == b, Errors.MUL_OVERFLOW);
-
         return product / ONE;
     }
 
     function mulUp(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 product = a * b;
-        _require(a == 0 || product / a == b, Errors.MUL_OVERFLOW);
 
         if (product == 0) {
             return 0;
@@ -67,26 +48,19 @@ library FixedPoint {
     }
 
     function divDown(uint256 a, uint256 b) internal pure returns (uint256) {
-        _require(b != 0, Errors.ZERO_DIVISION);
-
-        if (a == 0) {
+        if (a == 0 && b != 0) {
             return 0;
         } else {
             uint256 aInflated = a * ONE;
-            _require(aInflated / a == ONE, Errors.DIV_INTERNAL); // mul overflow
-
             return aInflated / b;
         }
     }
 
     function divUp(uint256 a, uint256 b) internal pure returns (uint256) {
-        _require(b != 0, Errors.ZERO_DIVISION);
-
-        if (a == 0) {
+        if (a == 0 && b != 0) {
             return 0;
         } else {
             uint256 aInflated = a * ONE;
-            _require(aInflated / a == ONE, Errors.DIV_INTERNAL); // mul overflow
 
             // The traditional divUp formula is:
             // divUp(x, y) := (x + y - 1) / y
@@ -104,12 +78,12 @@ library FixedPoint {
      */
     function powDown(uint256 x, uint256 y) internal pure returns (uint256) {
         uint256 raw = LogExpMath.pow(x, y);
-        uint256 maxError = add(mulUp(raw, MAX_POW_RELATIVE_ERROR), 1);
+        uint256 maxError = mulUp(raw, MAX_POW_RELATIVE_ERROR) + 1;
 
         if (raw < maxError) {
             return 0;
         } else {
-            return sub(raw, maxError);
+            return raw - maxError;
         }
     }
 
@@ -119,9 +93,9 @@ library FixedPoint {
      */
     function powUp(uint256 x, uint256 y) internal pure returns (uint256) {
         uint256 raw = LogExpMath.pow(x, y);
-        uint256 maxError = add(mulUp(raw, MAX_POW_RELATIVE_ERROR), 1);
+        uint256 maxError = mulUp(raw, MAX_POW_RELATIVE_ERROR) + 1;
 
-        return add(raw, maxError);
+        return raw + maxError;
     }
 
     /**

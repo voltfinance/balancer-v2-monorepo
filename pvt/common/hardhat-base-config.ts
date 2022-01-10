@@ -8,23 +8,23 @@ type ContractSettings = Record<
 
 const contractSettings: ContractSettings = {
   '@balancer-labs/v2-vault/contracts/Vault.sol': {
-    version: '0.8.9',
-    runs: 1500,
+    version: '0.8.8',
+    runs: 200,
   },
   '@balancer-labs/v2-pool-weighted/contracts/WeightedPool2TokensFactory.sol': {
-    version: '0.8.9',
+    version: '0.8.8',
     runs: 200,
   },
   '@balancer-labs/v2-pool-weighted/contracts/LiquidityBootstrappingPoolFactory.sol': {
-    version: '0.8.9',
+    version: '0.8.8',
     runs: 200,
   },
   '@balancer-labs/v2-pool-stable/contracts/meta/MetaStablePool.sol': {
-    version: '0.8.9',
+    version: '0.8.8',
     runs: 200,
   },
   '@balancer-labs/v2-pool-stable/contracts/meta/MetaStablePoolFactory.sol': {
-    version: '0.8.9',
+    version: '0.8.8',
     runs: 200,
   },
 };
@@ -45,12 +45,13 @@ type NetworkConfig = {
 };
 
 type NetworksConfig = {
+  localhost: NetworkConfig;
   hardhat: NetworkConfig;
 };
 
 export const compilers: [SolcConfig] = [
   {
-    version: '0.8.9',
+    version: '0.8.8',
     settings: {
       optimizer: {
         enabled: false,
@@ -61,6 +62,10 @@ export const compilers: [SolcConfig] = [
 ];
 
 export const networks: NetworksConfig = {
+  localhost: {
+    allowUnlimitedContractSize: true,
+    initialBaseFeePerGas: 0,
+  },
   hardhat: {
     allowUnlimitedContractSize: true,
     initialBaseFeePerGas: 0,

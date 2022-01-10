@@ -68,14 +68,14 @@ contract MockFlashLoanRecipient is IFlashLoanRecipient {
                 IVault(msg.sender).flashLoan(IFlashLoanRecipient(address(this)), tokens, amounts, userData);
             }
 
-            TestToken(address(token)).mint(address(this), repayInExcess ? feeAmount.add(1) : feeAmount);
+            TestToken(address(token)).mint(address(this), repayInExcess ? feeAmount + 1 : feeAmount);
 
-            uint256 totalDebt = amount.add(feeAmount);
+            uint256 totalDebt = amount + feeAmount;
 
             if (!repayLoan) {
-                totalDebt = totalDebt.sub(1);
+                totalDebt = totalDebt - 1;
             } else if (repayInExcess) {
-                totalDebt = totalDebt.add(1);
+                totalDebt = totalDebt + 1;
             }
 
             token.safeTransfer(vault, totalDebt);
