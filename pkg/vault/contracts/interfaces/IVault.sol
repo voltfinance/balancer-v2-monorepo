@@ -12,7 +12,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pragma experimental ABIEncoderV2;
+pragma solidity >=0.8.0;
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/IERC20.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/helpers/ISignaturesValidator.sol";
@@ -23,8 +23,6 @@ import "./IAsset.sol";
 import "./IAuthorizer.sol";
 import "./IFlashLoanRecipient.sol";
 import "./IProtocolFeesCollector.sol";
-
-pragma solidity ^0.7.0;
 
 /**
  * @dev Full external interface for the Vault core contract - no external or public methods exist in the contract that

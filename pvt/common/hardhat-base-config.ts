@@ -8,7 +8,7 @@ type ContractSettings = Record<
 
 const contractSettings: ContractSettings = {
   '@balancer-labs/v2-vault/contracts/Vault.sol': {
-    version: '0.7.1',
+    version: '0.8.9',
     runs: 1500,
   },
   '@balancer-labs/v2-pool-weighted/contracts/WeightedPool2TokensFactory.sol': {
@@ -41,7 +41,7 @@ type SolcConfig = {
 
 export const compilers: [SolcConfig] = [
   {
-    version: '0.7.1',
+    version: '0.8.9',
     settings: {
       optimizer: {
         enabled: true,

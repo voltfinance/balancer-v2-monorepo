@@ -30,5 +30,6 @@
   "workspaces": [
     "pkg/*",
     "pvt/*"
-  ]
+  ],
+  "packageManager": "yarn@3.1.1"
 }
