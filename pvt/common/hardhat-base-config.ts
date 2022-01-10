@@ -46,7 +46,7 @@ type NetworkConfig = {
 
 type NetworksConfig = {
   hardhat: NetworkConfig;
-}
+};
 
 export const compilers: [SolcConfig] = [
   {

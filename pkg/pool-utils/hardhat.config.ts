@@ -17,4 +17,3 @@ export default {
     overrides: { ...hardhatBaseConfig.overrides(name) },
   },
 };
-

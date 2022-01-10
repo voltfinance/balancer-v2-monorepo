@@ -145,6 +145,8 @@ contract MockVault is IPoolSwapStructs {
         uint256 protocolFeePercentage,
         bytes memory userData
     ) external {
+
+        
         (uint256[] memory amountsOut, uint256[] memory dueProtocolFeeAmounts) = IBasePool(poolAddress).onExitPool(
             poolId,
             msg.sender,
@@ -157,7 +159,9 @@ contract MockVault is IPoolSwapStructs {
 
         Pool storage pool = pools[poolId];
         for (uint256 i = 0; i < pool.tokens.length; i++) {
-            pool.balances[pool.tokens[i]] -= amountsOut[i];
+            unchecked {
+                pool.balances[pool.tokens[i]] -= amountsOut[i];
+            }
         }
 
         IERC20[] memory tokens = new IERC20[](currentBalances.length);
