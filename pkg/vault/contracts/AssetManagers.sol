@@ -115,7 +115,7 @@ abstract contract AssetManagers is
 
         // Since 'cash' and 'managed' are stored as uint112, `amount` is guaranteed to also fit in 112 bits. It will
         // therefore always fit in a 256 bit integer.
-        cashDelta = 0 - int256(amount);
+        cashDelta = (amount == 0) ? int256(0) : int256(~amount + 1);
         managedDelta = int256(amount);
     }
 
@@ -146,7 +146,7 @@ abstract contract AssetManagers is
         // Since 'cash' and 'managed' are stored as uint112, `amount` is guaranteed to also fit in 112 bits. It will
         // therefore always fit in a 256 bit integer.
         cashDelta = int256(amount);
-        managedDelta = 0 - int256(amount);
+        managedDelta = (amount == 0) ? int256(0) : int256(~amount + 1);
     }
 
     /**

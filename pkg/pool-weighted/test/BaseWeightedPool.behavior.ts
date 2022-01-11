@@ -751,7 +751,7 @@ export function itBehavesAsWeightedPool(
       it('pays swap protocol fees on exit BPT In for exact tokens out', async () => {
         const result = await pool.exitGivenOut({
           from: lp,
-          amountsOut: fp(1),
+          amountsOut: fp(0.5),
           currentBalances,
           protocolFeePercentage,
         });
@@ -813,7 +813,7 @@ export function itBehavesAsWeightedPool(
       it('pays swap protocol fees on exit BPT In for exact tokens out', async () => {
         const result = await pool.exitGivenOut({
           from: lp,
-          amountsOut: fp(1),
+          amountsOut: fp(0.5),
           currentBalances,
           protocolFeePercentage,
         });

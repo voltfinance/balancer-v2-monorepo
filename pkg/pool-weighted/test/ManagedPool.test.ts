@@ -805,6 +805,7 @@ describe('ManagedPool', function () {
             await pool.exitGivenOut({ from: owner, amountsOut });
 
             const { amounts: actualFees } = await pool.getCollectedManagementFees();
+
             // There should be non-zero collected fees on the second and third tokens
             expect(actualFees[1]).to.be.gt(0);
             expect(actualFees[2]).to.be.gt(0);

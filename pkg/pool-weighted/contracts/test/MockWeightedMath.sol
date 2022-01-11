@@ -114,7 +114,7 @@ contract MockWeightedMath {
         uint256[] memory amountsOut,
         uint256 bptTotalSupply,
         uint256 swapFee
-    ) external view returns (uint256) {
+    ) external pure returns (uint256) {
         (uint256 bptIn, ) = WeightedMath._calcBptInGivenExactTokensOut(
             balances,
             normalizedWeights,

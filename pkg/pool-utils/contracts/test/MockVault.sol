@@ -159,15 +159,13 @@ contract MockVault is IPoolSwapStructs {
 
         Pool storage pool = pools[poolId];
         for (uint256 i = 0; i < pool.tokens.length; i++) {
-            unchecked {
-                pool.balances[pool.tokens[i]] -= amountsOut[i];
-            }
+            pool.balances[pool.tokens[i]] -= amountsOut[i];
         }
 
         IERC20[] memory tokens = new IERC20[](currentBalances.length);
         int256[] memory deltas = new int256[](amountsOut.length);
         for (uint256 i = 0; i < amountsOut.length; ++i) {
-            deltas[i] = 0 - int256(amountsOut[i]);
+            deltas[i] = (amountsOut[i] == 0) ? int256(0) : int256(~amountsOut[i] + 1);
         }
 
         emit PoolBalanceChanged(poolId, msg.sender, tokens, deltas, dueProtocolFeeAmounts);
