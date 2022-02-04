@@ -14,19 +14,47 @@
 
 pragma solidity ^0.7.0;
 
-
 interface IERC4626 {
 
     /**
-     * @dev Returns liquidity index in 10^(vault decimals)
-     * @return assetsPerShare Rate between IERC4626 wrapper and underlying token
-    **/
+     * @dev `sender` has exchanged `assets` for `shares`, and transferred those `shares` to `receiver`.
+     */
+    event Deposit(
+        address indexed sender,
+        address indexed receiver,
+        uint256 assets,
+        uint256 shares
+    );
+
+    /**
+     * @dev `sender` has exchanged `shares` for `assets`, and transferred those `assets` to `receiver`.
+     */
+    event Withdraw(
+        address indexed sender,
+        address indexed receiver,
+        uint256 assets,
+        uint256 shares
+    );
+
+    /**
+     * @dev Mints `shares` Vault shares to `receiver` by depositing exactly `amount` of underlying tokens.
+     */
+    function deposit(uint256 assets, address receiver) external returns (uint256);
+
+    /**
+     * @dev Redeems `shares` from `owner` and sends `assets` of underlying tokens to `receiver`.
+     */
+    function redeem(uint256 shares, address receiver, address owner) external returns (uint256);
+
+    /**
+     * @dev The current exchange rate of shares to assets, quoted per unit share
+     **/
     function assetsPerShare() external view returns (uint256);
 
     /**
      * @dev Returns wrapped token address
      * @return address The address of the wrapped token
      **/
-    function underlying() external view returns (address);
+    function asset() external view returns (address);
 
 }

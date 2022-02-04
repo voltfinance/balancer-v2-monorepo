@@ -50,7 +50,7 @@ contract ERC4626LinearPool is LinearPool {
             owner
         )
     {
-        _require(address(mainToken) == IERC4626(address(wrappedToken)).underlying(), Errors.TOKENS_MISMATCH);
+        _require(address(mainToken) == IERC4626(address(wrappedToken)).asset(), Errors.TOKENS_MISMATCH);
 
         // _getWrappedTokenRate is scaled e18, we may need to scale the assetsPerShare (in terms of token decimals)
         uint256 tokenDecimals = ERC20(address(wrappedToken)).decimals();
