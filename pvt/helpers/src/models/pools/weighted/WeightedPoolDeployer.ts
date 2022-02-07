@@ -67,6 +67,8 @@ export default {
       swapEnabledOnStart,
       mustAllowlistLPs,
       managementSwapFeePercentage,
+      weightChangeMode,
+      swapFeeChangeMode,
       owner,
       from,
     } = params;
@@ -131,6 +133,8 @@ export default {
               swapEnabledOnStart: swapEnabledOnStart,
               mustAllowlistLPs: mustAllowlistLPs,
               managementSwapFeePercentage: managementSwapFeePercentage,
+              weightChangeMode: weightChangeMode,
+              swapFeeChangeMode: swapFeeChangeMode,
             },
           ],
           from,
@@ -172,6 +176,8 @@ export default {
       poolType,
       owner,
       from,
+      weightChangeMode,
+      swapFeeChangeMode,
     } = params;
 
     let result: Promise<Contract>;
@@ -241,6 +247,8 @@ export default {
           swapEnabledOnStart: swapEnabledOnStart,
           mustAllowlistLPs: mustAllowlistLPs,
           managementSwapFeePercentage: managementSwapFeePercentage,
+          weightChangeMode,
+          swapFeeChangeMode,
         };
 
         const basePoolRights: BasePoolRights = {

@@ -8,6 +8,7 @@ import * as expectEvent from '@balancer-labs/v2-helpers/src/test/expectEvent';
 import { ZERO_ADDRESS } from '@balancer-labs/v2-helpers/src/constants';
 import { deploy, deployedAt } from '@balancer-labs/v2-helpers/src/contract';
 
+import { WeightChangeMode, SwapFeeChangeMode } from '@balancer-labs/v2-helpers/src/models/pools/weighted/types';
 import Vault from '@balancer-labs/v2-helpers/src/models/vault/Vault';
 import TokenList from '@balancer-labs/v2-helpers/src/models/tokens/TokenList';
 import { toNormalizedWeights } from '@balancer-labs/balancer-js';
@@ -63,6 +64,8 @@ describe('BaseManagedPoolFactory', function () {
       swapEnabledOnStart: swapsEnabled,
       mustAllowlistLPs: mustAllowlistLPs,
       managementSwapFeePercentage: POOL_MANAGEMENT_SWAP_FEE_PERCENTAGE,
+      weightChangeMode: WeightChangeMode.LINEAR_WEIGHT_CHANGE,
+      swapFeeChangeMode: SwapFeeChangeMode.NONE,
     };
 
     const receipt = await (await factory.connect(manager).create(newPoolParams)).wait();

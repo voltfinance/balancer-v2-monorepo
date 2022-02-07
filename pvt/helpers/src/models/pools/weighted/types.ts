@@ -32,6 +32,8 @@ export type RawWeightedPoolDeployment = {
   vault?: Vault;
   fromFactory?: boolean;
   poolType?: WeightedPoolType;
+  weightChangeMode?: WeightChangeMode;
+  swapFeeChangeMode?: SwapFeeChangeMode;
 };
 
 export type WeightedPoolDeployment = {
@@ -46,6 +48,8 @@ export type WeightedPoolDeployment = {
   swapEnabledOnStart: boolean;
   mustAllowlistLPs: boolean;
   managementSwapFeePercentage: BigNumberish;
+  weightChangeMode: WeightChangeMode;
+  swapFeeChangeMode: SwapFeeChangeMode;
   owner?: string;
   admin?: SignerWithAddress;
   from?: SignerWithAddress;
@@ -226,4 +230,16 @@ export type ManagedPoolParams = {
   swapEnabledOnStart: boolean;
   mustAllowlistLPs: boolean;
   managementSwapFeePercentage: BigNumberish;
+  weightChangeMode: WeightChangeMode;
+  swapFeeChangeMode: SwapFeeChangeMode;
 };
+
+export enum WeightChangeMode {
+  NONE = 0,
+  LINEAR_WEIGHT_CHANGE,
+}
+
+export enum SwapFeeChangeMode {
+  NONE = 0,
+  LINEAR_SWAP_FEE_CHANGE,
+}

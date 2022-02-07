@@ -9,7 +9,11 @@ import TokenList from '@balancer-labs/v2-helpers/src/models/tokens/TokenList';
 import { MAX_UINT256, ZERO_ADDRESS } from '@balancer-labs/v2-helpers/src/constants';
 import Vault from '@balancer-labs/v2-helpers/src/models/vault/Vault';
 import WeightedPool from '@balancer-labs/v2-helpers/src/models/pools/weighted/WeightedPool';
-import { WeightedPoolType } from '@balancer-labs/v2-helpers/src/models/pools/weighted/types';
+import {
+  WeightedPoolType,
+  WeightChangeMode,
+  SwapFeeChangeMode,
+} from '@balancer-labs/v2-helpers/src/models/pools/weighted/types';
 import { expectEqualWithError } from '@balancer-labs/v2-helpers/src/test/relativeError';
 import { expectBalanceChange } from '@balancer-labs/v2-helpers/src/test/tokenBalance';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
@@ -17,7 +21,7 @@ import { ManagedPoolEncoder, SwapKind } from '@balancer-labs/balancer-js';
 
 import { range } from 'lodash';
 
-describe('ManagedPool', function () {
+describe.only('ManagedPool', function () {
   let allTokens: TokenList;
   let poolTokens: TokenList;
   let tooManyWeights: BigNumber[];
@@ -60,6 +64,8 @@ describe('ManagedPool', function () {
             weights: WEIGHTS.slice(0, numTokens),
             swapFeePercentage: POOL_SWAP_FEE_PERCENTAGE,
             managementSwapFeePercentage: POOL_MANAGEMENT_SWAP_FEE_PERCENTAGE,
+            weightChangeMode: WeightChangeMode.LINEAR_WEIGHT_CHANGE,
+            swapFeeChangeMode: SwapFeeChangeMode.NONE,
           });
         });
 

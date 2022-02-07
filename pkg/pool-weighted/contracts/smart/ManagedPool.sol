@@ -20,6 +20,7 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.
 import "@balancer-labs/v2-solidity-utils/contracts/helpers/ERC20Helpers.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/helpers/WordCodec.sol";
 
+import "../lib/SwapFeeChange.sol";
 import "../lib/WeightChange.sol";
 import "../lib/WeightCompression.sol";
 
@@ -100,6 +101,13 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
     uint256 private constant _END_WEIGHT_OFFSET = 64;
     uint256 private constant _DECIMAL_DIFF_OFFSET = 96;
 
+    // Holds initial swap fee percentage for a weight change with swap fee decreasing.
+    uint256 _startSwapFeePercentage;
+
+    //Holds settings how weight change will be calculated
+    WeightChange.WeightChangeMode _weightChangeMode;
+    SwapFeeChange.SwapFeeChangeMode _swapFeeChangeMode;
+
     // If mustAllowlistLPs is enabled, this is the list of addresses allowed to join the pool
     mapping(address => bool) private _allowedAddresses;
 
@@ -132,6 +140,8 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
         bool swapEnabledOnStart;
         bool mustAllowlistLPs;
         uint256 managementSwapFeePercentage;
+        WeightChange.WeightChangeMode weightChangeMode;
+        SwapFeeChange.SwapFeeChangeMode swapFeeChangeMode;
     }
 
     constructor(NewPoolParams memory params)
@@ -160,6 +170,9 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
             params.managementSwapFeePercentage <= _MAX_MANAGEMENT_SWAP_FEE_PERCENTAGE,
             Errors.MAX_MANAGEMENT_SWAP_FEE_PERCENTAGE
         );
+
+        _weightChangeMode = params.weightChangeMode;
+        _swapFeeChangeMode = params.swapFeeChangeMode;
 
         uint256 currentTime = block.timestamp;
         _startGradualWeightChange(
@@ -212,6 +225,21 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
      */
     function getManagementSwapFeePercentage() public view returns (uint256) {
         return _managementSwapFeePercentage;
+    }
+
+    function getSwapFeePercentage() public view override returns (uint256) {
+        bytes32 poolState = _getMiscData();
+        uint256 startTime = poolState.decodeUint32(_START_TIME_OFFSET);
+        uint256 endTime = poolState.decodeUint32(_END_TIME_OFFSET);
+
+        return
+            SwapFeeChange.getSwapFeePercentage(
+                _swapFeeChangeMode,
+                _startSwapFeePercentage,
+                super.getSwapFeePercentage(),
+                startTime,
+                endTime
+            );
     }
 
     /**
@@ -381,7 +409,7 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
         uint256 startTime = poolState.decodeUint32(_START_TIME_OFFSET);
         uint256 endTime = poolState.decodeUint32(_END_TIME_OFFSET);
 
-        return WeightChange.getNormalizedWeight(startWeight, endWeight, startTime, endTime);
+        return WeightChange.getNormalizedWeight(_weightChangeMode, startWeight, endWeight, startTime, endTime);
     }
 
     function _getNormalizedWeights() internal view override returns (uint256[] memory normalizedWeights) {
@@ -399,7 +427,13 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
             uint256 startWeight = tokenData.decodeUint64(_START_WEIGHT_OFFSET).uncompress64();
             uint256 endWeight = tokenData.decodeUint32(_END_WEIGHT_OFFSET).uncompress32();
 
-            normalizedWeights[i] = WeightChange.getNormalizedWeight(startWeight, endWeight, startTime, endTime);
+            normalizedWeights[i] = WeightChange.getNormalizedWeight(
+                _weightChangeMode,
+                startWeight,
+                endWeight,
+                startTime,
+                endTime
+            );
         }
     }
 

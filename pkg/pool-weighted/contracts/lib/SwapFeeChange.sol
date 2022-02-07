@@ -16,52 +16,52 @@ import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 
 pragma solidity ^0.7.0;
 
-library WeightChange {
+library SwapFeeChange {
     using FixedPoint for uint256;
 
-    enum WeightChangeMode { NONE, LINEAR_WEIGHT_CHANGE }
+    enum SwapFeeChangeMode { NONE, LINEAR_SWAP_FEE_CHANGE }
 
-    function getNormalizedWeight(
-        WeightChangeMode mode,
-        uint256 startWeight,
-        uint256 endWeight,
+    function getSwapFeePercentage(
+        SwapFeeChangeMode mode,
+        uint256 startSwapFeePercentage,
+        uint256 endSwapFeePercentage,
         uint256 startTime,
         uint256 endTime
     ) internal view returns (uint256) {
-        if (mode == WeightChangeMode.NONE) {
-            return endWeight;
-        } else if (mode == WeightChangeMode.LINEAR_WEIGHT_CHANGE) {
-            uint256 pctProgress = _calculateWeightChangeProgress(startTime, endTime);
-            return _interpolateWeight(startWeight, endWeight, pctProgress);
+        if (mode == SwapFeeChangeMode.NONE) {
+            return endSwapFeePercentage;
+        } else if (mode == SwapFeeChangeMode.LINEAR_SWAP_FEE_CHANGE) {
+            uint256 pctProgress = _calculateSwapFeeChangeProgress(startTime, endTime);
+            return _interpolateSwapFeePercentage(startSwapFeePercentage, endSwapFeePercentage, pctProgress);
         } else {
-            _revert(Errors.UNHANDLED_WEIGHT_CHANGE_MODE);
+            _revert(Errors.UNHANDLED_SWAP_FEE_CHANGE_MODE);
         }
     }
 
     // Private functions
 
-    function _interpolateWeight(
-        uint256 startWeight,
-        uint256 endWeight,
+    function _interpolateSwapFeePercentage(
+        uint256 startSwapFeePercentage,
+        uint256 endSwapFeePercentage,
         uint256 pctProgress
     ) private pure returns (uint256) {
-        if (pctProgress == 0 || startWeight == endWeight) return startWeight;
-        if (pctProgress >= FixedPoint.ONE) return endWeight;
+        if (pctProgress == 0 || startSwapFeePercentage == endSwapFeePercentage) return startSwapFeePercentage;
+        if (pctProgress >= FixedPoint.ONE) return endSwapFeePercentage;
 
-        if (startWeight > endWeight) {
-            uint256 weightDelta = pctProgress.mulDown(startWeight - endWeight);
-            return startWeight.sub(weightDelta);
+        if (startSwapFeePercentage > endSwapFeePercentage) {
+            uint256 swapFeePercentageDeltta = pctProgress.mulDown(startSwapFeePercentage - endSwapFeePercentage);
+            return startSwapFeePercentage.sub(swapFeePercentageDeltta);
         } else {
-            uint256 weightDelta = pctProgress.mulDown(endWeight - startWeight);
-            return startWeight.add(weightDelta);
+            uint256 swapFeePercentageDeltta = pctProgress.mulDown(endSwapFeePercentage - startSwapFeePercentage);
+            return startSwapFeePercentage.add(swapFeePercentageDeltta);
         }
     }
 
     /**
-     * @dev Returns a fixed-point number representing how far along the current weight change is, where 0 means the
-     * change has not yet started, and FixedPoint.ONE means it has fully completed.
+     * @dev Returns a fixed-point number representing how far along the current swap fee percentage change is, where 0
+     * means the change has not yet started, and FixedPoint.ONE means it has fully completed.
      */
-    function _calculateWeightChangeProgress(uint256 startTime, uint256 endTime) private view returns (uint256) {
+    function _calculateSwapFeeChangeProgress(uint256 startTime, uint256 endTime) private view returns (uint256) {
         uint256 currentTime = block.timestamp;
 
         if (currentTime > endTime) {
