@@ -28,10 +28,14 @@ library WeightChange {
         uint256 startTime,
         uint256 endTime
     ) internal view returns (uint256) {
+        uint256 pctProgress = _calculateWeightChangeProgress(startTime, endTime);
         if (mode == WeightChangeMode.NONE) {
-            return endWeight;
+            if (pctProgress == 0) {
+                return startWeight;
+            } else {
+                return endWeight;
+            }
         } else if (mode == WeightChangeMode.LINEAR_WEIGHT_CHANGE) {
-            uint256 pctProgress = _calculateWeightChangeProgress(startTime, endTime);
             return _interpolateWeight(startWeight, endWeight, pctProgress);
         } else {
             _revert(Errors.UNHANDLED_WEIGHT_CHANGE_MODE);

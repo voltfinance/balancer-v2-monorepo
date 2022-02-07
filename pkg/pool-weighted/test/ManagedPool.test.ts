@@ -21,7 +21,7 @@ import { ManagedPoolEncoder, SwapKind } from '@balancer-labs/balancer-js';
 
 import { range } from 'lodash';
 
-describe.only('ManagedPool', function () {
+describe('ManagedPool', function () {
   let allTokens: TokenList;
   let poolTokens: TokenList;
   let tooManyWeights: BigNumber[];
@@ -64,8 +64,6 @@ describe.only('ManagedPool', function () {
             weights: WEIGHTS.slice(0, numTokens),
             swapFeePercentage: POOL_SWAP_FEE_PERCENTAGE,
             managementSwapFeePercentage: POOL_MANAGEMENT_SWAP_FEE_PERCENTAGE,
-            weightChangeMode: WeightChangeMode.LINEAR_WEIGHT_CHANGE,
-            swapFeeChangeMode: SwapFeeChangeMode.NONE,
           });
         });
 
@@ -475,7 +473,7 @@ describe.only('ManagedPool', function () {
       });
     });
 
-    describe('update weights gradually', () => {
+    describe('update weights linearly', () => {
       sharedBeforeEach('deploy pool', async () => {
         const params = {
           tokens: poolTokens,
@@ -483,6 +481,8 @@ describe.only('ManagedPool', function () {
           owner: owner.address,
           poolType: WeightedPoolType.MANAGED_POOL,
           swapEnabledOnStart: true,
+          weightChangeMode: WeightChangeMode.LINEAR_WEIGHT_CHANGE,
+          swapFeeChangeMode: SwapFeeChangeMode.NONE,
         };
         pool = await WeightedPool.create(params);
       });
@@ -649,6 +649,212 @@ describe.only('ManagedPool', function () {
 
               // Need to decrease precision
               expect(normalizedWeights).to.equalWithError(getEndWeights(pct), 0.005);
+            });
+          }
+        });
+      });
+    });
+
+    describe('update weights by decreasing swap fee percentage', () => {
+      sharedBeforeEach('deploy pool', async () => {
+        const params = {
+          tokens: poolTokens,
+          weights: poolWeights,
+          owner: owner.address,
+          poolType: WeightedPoolType.MANAGED_POOL,
+          swapEnabledOnStart: true,
+          swapFeePercentage: POOL_SWAP_FEE_PERCENTAGE,
+          weightChangeMode: WeightChangeMode.NONE,
+          swapFeeChangeMode: SwapFeeChangeMode.LINEAR_SWAP_FEE_CHANGE,
+        };
+        pool = await WeightedPool.create(params);
+      });
+
+      const UPDATE_DURATION = DAY * 2;
+
+      context('when the sender is not the owner', () => {
+        it('non-owners cannot update weights', async () => {
+          const now = await currentTimestamp();
+
+          await expect(
+            pool.updateWeightsGradually(other, now, now, poolWeights, POOL_SWAP_FEE_PERCENTAGE.mul(2))
+          ).to.be.revertedWith('SENDER_NOT_ALLOWED');
+        });
+      });
+
+      context('when the sender is the owner', () => {
+        beforeEach('set sender to owner', () => {
+          sender = owner;
+        });
+
+        sharedBeforeEach('initialize pool', async () => {
+          await pool.init({ from: sender, initialBalances });
+        });
+
+        context('with invalid parameters', () => {
+          let now: BigNumber;
+
+          sharedBeforeEach(async () => {
+            now = await currentTimestamp();
+          });
+
+          it('fails if end weights are mismatched (too few)', async () => {
+            await expect(
+              pool.updateWeightsGradually(sender, now, now, WEIGHTS.slice(0, 1), POOL_SWAP_FEE_PERCENTAGE.mul(2))
+            ).to.be.revertedWith('INPUT_LENGTH_MISMATCH');
+          });
+
+          it('fails if the end weights are mismatched (too many)', async () => {
+            await expect(
+              pool.updateWeightsGradually(sender, now, now, [...WEIGHTS, fp(0.5)], POOL_SWAP_FEE_PERCENTAGE.mul(2))
+            ).to.be.revertedWith('INPUT_LENGTH_MISMATCH');
+          });
+
+          it('fails if start time > end time', async () => {
+            await expect(
+              pool.updateWeightsGradually(sender, now, now.sub(1), poolWeights, POOL_SWAP_FEE_PERCENTAGE.mul(2))
+            ).to.be.revertedWith('GRADUAL_UPDATE_TIME_TRAVEL');
+          });
+
+          it('fails if start fee > end fee', async () => {
+            await expect(
+              pool.updateWeightsGradually(sender, now, now.add(100), poolWeights, POOL_SWAP_FEE_PERCENTAGE.div(2))
+            ).to.be.revertedWith('GRADUAL_UPDATE_START_SWAP_FEE_PERCENTAGE');
+          });
+
+          it('fails with an end weight below the minimum', async () => {
+            const badWeights = [...poolWeights];
+            badWeights[2] = fp(0.005);
+
+            await expect(
+              pool.updateWeightsGradually(
+                sender,
+                now.add(100),
+                now.add(WEEK),
+                badWeights,
+                POOL_SWAP_FEE_PERCENTAGE.mul(2)
+              )
+            ).to.be.revertedWith('MIN_WEIGHT');
+          });
+
+          it('fails with invalid normalized end weights', async () => {
+            const badWeights = Array(poolWeights.length).fill(fp(0.6));
+
+            await expect(
+              pool.updateWeightsGradually(
+                sender,
+                now.add(100),
+                now.add(WEEK),
+                badWeights,
+                POOL_SWAP_FEE_PERCENTAGE.mul(2)
+              )
+            ).to.be.revertedWith('NORMALIZED_WEIGHT_INVARIANT');
+          });
+
+          context('with start time in the past', () => {
+            let now: BigNumber, startTime: BigNumber, endTime: BigNumber;
+            const endWeights = [...poolWeights];
+
+            sharedBeforeEach('updateWeightsGradually (start time in the past)', async () => {
+              now = await currentTimestamp();
+              // Start an hour in the past
+              startTime = now.sub(MINUTE * 60);
+              endTime = now.add(UPDATE_DURATION);
+            });
+
+            it('fast-forwards start time to present', async () => {
+              await pool.updateWeightsGradually(owner, startTime, endTime, endWeights, POOL_SWAP_FEE_PERCENTAGE.mul(2));
+              const updateParams = await pool.getGradualWeightUpdateParams();
+
+              // Start time should be fast-forwarded to now
+              expect(updateParams.startTime).to.equal(await currentTimestamp());
+            });
+          });
+        });
+
+        context('with valid parameters (ongoing weight update)', () => {
+          // startWeights must equal "weights" above - just not using fp to keep math simple
+          const startWeights = [...poolWeights];
+          const endWeights = [...poolWeights];
+
+          const startSwapFee = POOL_SWAP_FEE_PERCENTAGE.mul(10);
+          const endSwapFee = POOL_SWAP_FEE_PERCENTAGE;
+
+          // Now generate endWeights (first weight doesn't change)
+          for (let i = 2; i < poolWeights.length; i++) {
+            endWeights[i] = 0 == i % 2 ? startWeights[i].add(fp(0.02)) : startWeights[i].sub(fp(0.02));
+          }
+
+          function getSwapFeePercentage(pct: number): BigNumber {
+            const intermediateSwapFee = startSwapFee.sub(startSwapFee.sub(endSwapFee).mul(pct).div(100));
+            return intermediateSwapFee;
+          }
+
+          let now, startTime: BigNumber, endTime: BigNumber;
+          const START_DELAY = MINUTE * 10;
+
+          sharedBeforeEach('updateWeightsGradually', async () => {
+            now = await currentTimestamp();
+            startTime = now.add(START_DELAY);
+            endTime = startTime.add(UPDATE_DURATION);
+
+            await pool.updateWeightsGradually(owner, startTime, endTime, endWeights, startSwapFee);
+          });
+
+          it('updating weights emits an event', async () => {
+            const receipt = await pool.updateWeightsGradually(owner, startTime, endTime, endWeights, startSwapFee);
+
+            expectEvent.inReceipt(await receipt.wait(), 'GradualWeightUpdateScheduled', {
+              startTime: startTime,
+              endTime: endTime,
+              startSwapFeePercentage: startSwapFee,
+              // weights don't exactly match because of the compression
+            });
+          });
+
+          it('stores the params', async () => {
+            const updateParams = await pool.getGradualWeightUpdateParams();
+
+            expect(updateParams.startTime).to.equalWithError(startTime, 0.001);
+            expect(updateParams.endTime).to.equalWithError(endTime, 0.001);
+            expect(updateParams.endWeights).to.equalWithError(endWeights, 0.001);
+
+            expect(await pool.getStartSwapFeePercentage()).to.equal(startSwapFee);
+          });
+
+          it('gets start weights if called before the start time', async () => {
+            const normalizedWeights = await pool.getNormalizedWeights();
+
+            // Need to decrease precision
+            expect(normalizedWeights).to.equalWithError(pool.normalizedWeights, 0.0001);
+          });
+
+          it('gets end weights if called between the start time and the end time', async () => {
+            await advanceTime(START_DELAY + UPDATE_DURATION / 2);
+            const normalizedWeights = await pool.getNormalizedWeights();
+
+            // Need to decrease precision
+            expect(normalizedWeights).to.equalWithError(endWeights, 0.0001);
+          });
+
+          it('gets end weights if called after the end time', async () => {
+            await advanceTime(endTime.add(MINUTE));
+            const normalizedWeights = await pool.getNormalizedWeights();
+
+            // Need to decrease precision
+            expect(normalizedWeights).to.equalWithError(endWeights, 0.0001);
+          });
+
+          for (let pct = 5; pct < 100; pct += 5) {
+            it(`gets correct intermediate swap fee percentage if called ${pct}% through`, async () => {
+              await advanceTime(START_DELAY + (UPDATE_DURATION * pct) / 100);
+
+              const swapFeePercentage = await pool.getSwapFeePercentage();
+              expect(swapFeePercentage).to.equalWithError(getSwapFeePercentage(pct), 0.005);
+
+              //weights remain the same
+              const normalizedWeights = await pool.getNormalizedWeights();
+              expect(normalizedWeights).to.equalWithError(endWeights, 0.0001);
             });
           }
         });

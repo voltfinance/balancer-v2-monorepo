@@ -116,6 +116,7 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
     event GradualWeightUpdateScheduled(
         uint256 startTime,
         uint256 endTime,
+        uint256 startSwapFeePercentage,
         uint256[] startWeights,
         uint256[] endWeights
     );
@@ -178,6 +179,7 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
         _startGradualWeightChange(
             currentTime,
             currentTime,
+            params.swapFeePercentage,
             params.normalizedWeights,
             params.normalizedWeights,
             params.tokens
@@ -211,6 +213,13 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
      */
     function getMustAllowlistLPs() public view returns (bool) {
         return _getMiscData().decodeBool(_MUST_ALLOWLIST_LPS_OFFSET);
+    }
+
+    /**
+     * @dev Returns start swap fee percentage.
+     */
+    function getStartSwapFeePercentage() public view returns (uint256) {
+        return _startSwapFeePercentage;
     }
 
     /**
@@ -286,6 +295,7 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
     function updateWeightsGradually(
         uint256 startTime,
         uint256 endTime,
+        uint256 startSwapFeePercentage,
         uint256[] memory endWeights
     ) external authenticate whenNotPaused nonReentrant {
         InputHelpers.ensureInputLengthMatch(_getTotalTokens(), endWeights.length);
@@ -298,9 +308,22 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
 
         _require(startTime <= endTime, Errors.GRADUAL_UPDATE_TIME_TRAVEL);
 
+        _require(
+            _swapFeeChangeMode == SwapFeeChange.SwapFeeChangeMode.NONE ||
+                startSwapFeePercentage >= super.getSwapFeePercentage(),
+            Errors.GRADUAL_UPDATE_START_SWAP_FEE_PERCENTAGE
+        );
+
         (IERC20[] memory tokens, , ) = getVault().getPoolTokens(getPoolId());
 
-        _startGradualWeightChange(startTime, endTime, _getNormalizedWeights(), endWeights, tokens);
+        _startGradualWeightChange(
+            startTime,
+            endTime,
+            startSwapFeePercentage,
+            _getNormalizedWeights(),
+            endWeights,
+            tokens
+        );
     }
 
     function getCollectedManagementFees() public view returns (IERC20[] memory tokens, uint256[] memory collectedFees) {
@@ -667,12 +690,15 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
     function _startGradualWeightChange(
         uint256 startTime,
         uint256 endTime,
+        uint256 startSwapFeePercentage,
         uint256[] memory startWeights,
         uint256[] memory endWeights,
         IERC20[] memory tokens
     ) internal virtual {
         uint256 normalizedSum = 0;
         bytes32 tokenState;
+
+        _startSwapFeePercentage = startSwapFeePercentage;
 
         for (uint256 i = 0; i < endWeights.length; i++) {
             uint256 endWeight = endWeights[i];
@@ -697,7 +723,7 @@ contract ManagedPool is BaseWeightedPool, ReentrancyGuard {
             _getMiscData().insertUint32(startTime, _START_TIME_OFFSET).insertUint32(endTime, _END_TIME_OFFSET)
         );
 
-        emit GradualWeightUpdateScheduled(startTime, endTime, startWeights, endWeights);
+        emit GradualWeightUpdateScheduled(startTime, endTime, startSwapFeePercentage, startWeights, endWeights);
     }
 
     function _readScalingFactor(bytes32 tokenState) private pure returns (uint256) {

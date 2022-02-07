@@ -661,10 +661,15 @@ export default class WeightedPool {
     from: SignerWithAddress,
     startTime: BigNumberish,
     endTime: BigNumberish,
-    endWeights: BigNumberish[]
+    endWeights: BigNumberish[],
+    startSwapFeePercentage?: BigNumberish
   ): Promise<ContractTransaction> {
     const pool = this.instance.connect(from);
-    return await pool.updateWeightsGradually(startTime, endTime, endWeights);
+    if (this.poolType != WeightedPoolType.MANAGED_POOL) {
+      return await pool.updateWeightsGradually(startTime, endTime, endWeights);
+    } else {
+      return await pool.updateWeightsGradually(startTime, endTime, startSwapFeePercentage ?? bn(0), endWeights);
+    }
   }
 
   async getGradualWeightUpdateParams(from?: SignerWithAddress): Promise<GradualUpdateParams> {
@@ -675,5 +680,9 @@ export default class WeightedPool {
   async getCollectedManagementFees(): Promise<TokenCollectedFees> {
     const result = await this.instance.getCollectedManagementFees();
     return { amounts: result.collectedFees, tokenAddresses: result.tokens };
+  }
+
+  async getStartSwapFeePercentage(): Promise<BigNumber> {
+    return this.instance.getStartSwapFeePercentage();
   }
 }

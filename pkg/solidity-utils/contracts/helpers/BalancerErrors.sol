@@ -162,6 +162,7 @@ library Errors {
     uint256 internal constant UNINITIALIZED_POOL_CONTROLLER = 345;
     uint256 internal constant UNHANDLED_WEIGHT_CHANGE_MODE = 346;
     uint256 internal constant UNHANDLED_SWAP_FEE_CHANGE_MODE = 347;
+    uint256 internal constant GRADUAL_UPDATE_START_SWAP_FEE_PERCENTAGE = 348;
 
     // Lib
     uint256 internal constant REENTRANCY = 400;
