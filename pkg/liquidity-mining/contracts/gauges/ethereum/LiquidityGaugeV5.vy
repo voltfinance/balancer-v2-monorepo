@@ -13,7 +13,6 @@ implements: ERC20
 interface TokenAdmin:
     def getVault() -> address: view
     def future_epoch_time_write() -> uint256: nonpayable
-    def rate() -> uint256: view
 
 interface Controller:
     def voting_escrow() -> address: view
@@ -27,6 +26,7 @@ interface ERC1271:
     def isValidSignature(_hash: bytes32, _signature: Bytes[65]) -> bytes32: view
 
 interface Minter:
+    def rate() -> uint256: view
     def getBalancerTokenAdmin() -> address: view
     def getGaugeController() -> address: view
     def minted(user: address, gauge: address) -> uint256: view
@@ -204,7 +204,7 @@ def _checkpoint(addr: address):
     new_rate: uint256 = rate
 
     if prev_future_epoch >= _period_time:
-        new_rate = TokenAdmin(BAL_TOKEN_ADMIN).rate()
+        new_rate = Minter(MINTER).rate()
         self.inflation_params = shift(TokenAdmin(BAL_TOKEN_ADMIN).future_epoch_time_write(), 216) + new_rate
 
     if self.is_killed:
@@ -852,4 +852,4 @@ def initialize(_lp_token: address):
     )
 
     self.period_timestamp[0] = block.timestamp
-    self.inflation_params = shift(TokenAdmin(BAL_TOKEN_ADMIN).future_epoch_time_write(), 216) + TokenAdmin(BAL_TOKEN_ADMIN).rate()
+    self.inflation_params = shift(TokenAdmin(BAL_TOKEN_ADMIN).future_epoch_time_write(), 216) + Minter(MINTER).rate()

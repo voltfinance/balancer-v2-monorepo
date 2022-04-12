@@ -70,7 +70,7 @@ abstract contract StakelessGauge is ILiquidityGauge, ReentrancyGuard {
 
         // Because we calculate the rate locally, this gauge cannot
         // be used prior to the start of the first emission period
-        uint256 rate = _tokenAdmin.rate();
+        uint256 rate = _minter.rate();
         require(rate != 0, "BalancerTokenAdmin not yet activated");
 
         _rate = rate;
