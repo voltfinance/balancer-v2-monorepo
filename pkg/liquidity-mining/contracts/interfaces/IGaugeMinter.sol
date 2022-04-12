@@ -36,6 +36,11 @@ interface IGaugeMinter {
     function getGaugeController() external view returns (IGaugeController);
 
     /**
+     * @notice Returns the total rate of inflation which this minter is responsible for.
+     */
+    function rate() external view returns (uint256);
+
+    /**
      * @notice Mint everything which belongs to `msg.sender` and send to them
      * @param gauge `LiquidityGauge` address to get mintable amount from
      */

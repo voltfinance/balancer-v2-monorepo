@@ -14,6 +14,7 @@
 
 pragma solidity ^0.7.0;
 
+import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeMath.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/EIP712.sol";
@@ -42,6 +43,8 @@ contract GaugeMinter is IGaugeMinter, ReentrancyGuard, EIP712 {
     bytes32 private immutable _SET_MINTER_APPROVAL_TYPEHASH = keccak256(
         "SetMinterApproval(address minter,bool approval,uint256 nonce,uint256 deadline)"
     );
+
+    uint256 private constant _BAL_INFLATION_FRACTION = 8e17; // 80% of total BAL inflation
 
     event MinterApprovalSet(address indexed user, address indexed minter, bool approval);
 
@@ -78,6 +81,13 @@ contract GaugeMinter is IGaugeMinter, ReentrancyGuard, EIP712 {
      */
     function getGaugeController() external view override returns (IGaugeController) {
         return _gaugeController;
+    }
+
+    /**
+     * @notice Returns the total rate of inflation which this minter is responsible for.
+     */
+    function rate() external view override returns (uint256) {
+        return FixedPoint.mulDown(_tokenAdmin.rate(), _BAL_INFLATION_FRACTION);
     }
 
     /**
