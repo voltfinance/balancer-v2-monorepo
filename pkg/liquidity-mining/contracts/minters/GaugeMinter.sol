@@ -23,7 +23,7 @@ import "../interfaces/IBalancerTokenAdmin.sol";
 import "../interfaces/IGaugeController.sol";
 import "../interfaces/ILiquidityGauge.sol";
 
-contract BalancerMinter is IBalancerMinter, ReentrancyGuard, EIP712 {
+contract GaugeMinter is IBalancerMinter, ReentrancyGuard, EIP712 {
     using SafeMath for uint256;
 
     IERC20 private immutable _token;
