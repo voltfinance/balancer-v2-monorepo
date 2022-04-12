@@ -24,7 +24,7 @@ contract SingleRecipientGauge is ISingleRecipientGauge, StakelessGauge {
 
     address private _recipient;
 
-    constructor(IBalancerMinter minter) StakelessGauge(minter) {
+    constructor(IGaugeMinter minter) StakelessGauge(minter) {
         // solhint-disable-previous-line no-empty-blocks
     }
 

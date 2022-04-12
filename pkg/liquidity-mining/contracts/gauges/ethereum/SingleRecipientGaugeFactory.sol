@@ -28,7 +28,7 @@ contract SingleRecipientGaugeFactory is ISingleRecipientGaugeFactory {
 
     event SingleRecipientGaugeCreated(address indexed gauge, address indexed recipient);
 
-    constructor(IBalancerMinter minter) {
+    constructor(IGaugeMinter minter) {
         _gaugeImplementation = new SingleRecipientGauge(minter);
     }
 

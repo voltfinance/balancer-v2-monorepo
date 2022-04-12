@@ -17,7 +17,7 @@ pragma experimental ABIEncoderV2;
 
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Address.sol";
 
-import "@balancer-labs/v2-liquidity-mining/contracts/interfaces/IBalancerMinter.sol";
+import "@balancer-labs/v2-liquidity-mining/contracts/interfaces/IGaugeMinter.sol";
 import "@balancer-labs/v2-liquidity-mining/contracts/interfaces/IStakingLiquidityGauge.sol";
 import "@balancer-labs/v2-vault/contracts/interfaces/IVault.sol";
 
@@ -30,14 +30,14 @@ import "../interfaces/IBaseRelayerLibrary.sol";
 abstract contract GaugeActions is IBaseRelayerLibrary {
     using Address for address payable;
 
-    IBalancerMinter private immutable _balancerMinter;
+    IGaugeMinter private immutable _gaugeMinter;
 
     /**
-     * @dev The zero address may be passed as balancerMinter to safely disable features
+     * @dev The zero address may be passed as gaugeMinter to safely disable features
      *      which only exist on mainnet
      */
-    constructor(IBalancerMinter balancerMinter) {
-        _balancerMinter = balancerMinter;
+    constructor(IGaugeMinter gaugeMinter) {
+        _gaugeMinter = gaugeMinter;
     }
 
     function gaugeDeposit(
@@ -94,7 +94,7 @@ abstract contract GaugeActions is IBaseRelayerLibrary {
     }
 
     function gaugeMint(address[] calldata gauges, uint256 outputReference) external payable {
-        uint256 balMinted = _balancerMinter.mintManyFor(gauges, msg.sender);
+        uint256 balMinted = _gaugeMinter.mintManyFor(gauges, msg.sender);
 
         if (_isChainedReference(outputReference)) {
             _setChainedReferenceValue(outputReference, balMinted);
@@ -109,7 +109,7 @@ abstract contract GaugeActions is IBaseRelayerLibrary {
         bytes32 r,
         bytes32 s
     ) external payable {
-        _balancerMinter.setMinterApprovalWithSignature(address(this), approval, user, deadline, v, r, s);
+        _gaugeMinter.setMinterApprovalWithSignature(address(this), approval, user, deadline, v, r, s);
     }
 
     function gaugeClaimRewards(IStakingLiquidityGauge[] calldata gauges) external payable {

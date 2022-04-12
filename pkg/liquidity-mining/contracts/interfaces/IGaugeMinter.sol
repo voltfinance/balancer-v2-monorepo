@@ -17,7 +17,7 @@ pragma solidity ^0.7.0;
 import "./IBalancerTokenAdmin.sol";
 import "./IGaugeController.sol";
 
-interface IBalancerMinter {
+interface IGaugeMinter {
     event Minted(address indexed recipient, address gauge, uint256 minted);
 
     /**

@@ -40,7 +40,7 @@ contract ArbitrumRootGaugeFactory is ILiquidityGaugeFactory, IArbitrumFeeProvide
 
     constructor(
         IVault vault,
-        IBalancerMinter minter,
+        IGaugeMinter minter,
         IGatewayRouter gatewayRouter,
         uint64 gasLimit,
         uint64 gasPrice,

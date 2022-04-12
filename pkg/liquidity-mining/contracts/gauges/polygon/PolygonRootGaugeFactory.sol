@@ -30,7 +30,7 @@ contract PolygonRootGaugeFactory is ISingleRecipientGaugeFactory {
     event PolygonRootGaugeCreated(address indexed gauge, address indexed recipient);
 
     constructor(
-        IBalancerMinter minter,
+        IGaugeMinter minter,
         IPolygonRootChainManager polygonRootChainManager,
         address polygonERC20Predicate
     ) {

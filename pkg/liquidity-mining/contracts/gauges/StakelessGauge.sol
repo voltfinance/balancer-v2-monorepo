@@ -17,7 +17,7 @@ pragma solidity ^0.7.0;
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/IERC20.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.sol";
 
-import "../interfaces/IBalancerMinter.sol";
+import "../interfaces/IGaugeMinter.sol";
 import "../interfaces/IBalancerTokenAdmin.sol";
 import "../interfaces/IGaugeController.sol";
 import "../interfaces/ILiquidityGauge.sol";
@@ -25,7 +25,7 @@ import "../interfaces/ILiquidityGauge.sol";
 abstract contract StakelessGauge is ILiquidityGauge, ReentrancyGuard {
     IERC20 internal immutable _balToken;
     IBalancerTokenAdmin private immutable _tokenAdmin;
-    IBalancerMinter private immutable _minter;
+    IGaugeMinter private immutable _minter;
     IGaugeController private immutable _gaugeController;
     IAuthorizerAdaptor private immutable _authorizerAdaptor;
 
@@ -44,7 +44,7 @@ abstract contract StakelessGauge is ILiquidityGauge, ReentrancyGuard {
     uint256 private _emissions;
     bool private _isKilled;
 
-    constructor(IBalancerMinter minter) {
+    constructor(IGaugeMinter minter) {
         IBalancerTokenAdmin tokenAdmin = IBalancerTokenAdmin(minter.getBalancerTokenAdmin());
         IERC20 balToken = tokenAdmin.getBalancerToken();
         IGaugeController gaugeController = minter.getGaugeController();

@@ -20,7 +20,7 @@ import "@balancer-labs/v2-vault/contracts/interfaces/IVault.sol";
 import "@balancer-labs/v2-liquidity-mining/contracts/interfaces/IAuthorizerAdaptor.sol";
 import "@balancer-labs/v2-liquidity-mining/contracts/interfaces/IGaugeAdder.sol";
 import "@balancer-labs/v2-liquidity-mining/contracts/interfaces/IGaugeController.sol";
-import "@balancer-labs/v2-liquidity-mining/contracts/interfaces/IBalancerMinter.sol";
+import "@balancer-labs/v2-liquidity-mining/contracts/interfaces/IGaugeMinter.sol";
 import "@balancer-labs/v2-liquidity-mining/contracts/interfaces/IBalancerTokenAdmin.sol";
 import "@balancer-labs/v2-liquidity-mining/contracts/interfaces/ILiquidityGaugeFactory.sol";
 import "@balancer-labs/v2-standalone-utils/contracts/interfaces/IBALTokenHolderFactory.sol";
@@ -48,7 +48,7 @@ contract veBALDeploymentCoordinator is ReentrancyGuard {
     IVault private immutable _vault;
     IAuthorizerAdaptor private immutable _authorizerAdaptor;
     IBalancerToken private immutable _balancerToken;
-    IBalancerMinter private immutable _balancerMinter;
+    IGaugeMinter private immutable _balancerMinter;
     IGaugeController private immutable _gaugeController;
     IGaugeAdder private immutable _gaugeAdder;
     ILiquidityGaugeFactory private immutable _ethereumGaugeFactory;
@@ -80,7 +80,7 @@ contract veBALDeploymentCoordinator is ReentrancyGuard {
     uint256 public constant ARBITRUM_WEIGHT = 7e16; // 7%
 
     constructor(
-        IBalancerMinter balancerMinter,
+        IGaugeMinter balancerMinter,
         IAuthorizerAdaptor authorizerAdaptor,
         IGaugeAdder gaugeAdder,
         ILiquidityGaugeFactory ethereumGaugeFactory,
@@ -130,7 +130,7 @@ contract veBALDeploymentCoordinator is ReentrancyGuard {
         return _balancerTokenAdmin;
     }
 
-    function getBalancerMinter() external view returns (IBalancerMinter) {
+    function getBalancerMinter() external view returns (IGaugeMinter) {
         return _balancerMinter;
     }
 

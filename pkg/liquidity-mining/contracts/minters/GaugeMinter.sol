@@ -18,12 +18,12 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeMath.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/EIP712.sol";
 
-import "../interfaces/IBalancerMinter.sol";
+import "../interfaces/IGaugeMinter.sol";
 import "../interfaces/IBalancerTokenAdmin.sol";
 import "../interfaces/IGaugeController.sol";
 import "../interfaces/ILiquidityGauge.sol";
 
-contract GaugeMinter is IBalancerMinter, ReentrancyGuard, EIP712 {
+contract GaugeMinter is IGaugeMinter, ReentrancyGuard, EIP712 {
     using SafeMath for uint256;
 
     IERC20 private immutable _token;
