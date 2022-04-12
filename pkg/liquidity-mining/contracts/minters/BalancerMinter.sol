@@ -18,10 +18,10 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ReentrancyGuard.
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/SafeMath.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/EIP712.sol";
 
-import "./interfaces/IBalancerMinter.sol";
-import "./interfaces/IBalancerTokenAdmin.sol";
-import "./interfaces/IGaugeController.sol";
-import "./interfaces/ILiquidityGauge.sol";
+import "../interfaces/IBalancerMinter.sol";
+import "../interfaces/IBalancerTokenAdmin.sol";
+import "../interfaces/IGaugeController.sol";
+import "../interfaces/ILiquidityGauge.sol";
 
 contract BalancerMinter is IBalancerMinter, ReentrancyGuard, EIP712 {
     using SafeMath for uint256;
