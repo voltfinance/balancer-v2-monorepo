@@ -46,6 +46,8 @@ interface IBalancerTokenAdmin is IAuthentication {
     function rate() external view returns (uint256);
 
     function startEpochTimeWrite() external returns (uint256);
+    
+    function futureEpochTimeWrite() external returns (uint256);
 
     function mint(address to, uint256 amount) external;
 }

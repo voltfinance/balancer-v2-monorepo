@@ -234,7 +234,7 @@ contract BalancerTokenAdmin is IBalancerTokenAdmin, Authentication, ReentrancyGu
      * @notice Get timestamp of the next mining epoch start while simultaneously updating mining parameters
      * @return Timestamp of the next epoch
      */
-    function futureEpochTimeWrite() external returns (uint256) {
+    function futureEpochTimeWrite() external override returns (uint256) {
         return _startEpochTimeWrite().add(RATE_REDUCTION_TIME);
     }
 
