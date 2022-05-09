@@ -66,6 +66,7 @@ describe('GradualValueChange', function () {
 
       sharedBeforeEach('updateWeightsGradually', async () => {
         now = await currentTimestamp();
+        console.log('time:', now.toString());
         startTime = now.add(START_DELAY);
         endTime = startTime.add(updateDuration);
       });
@@ -78,8 +79,10 @@ describe('GradualValueChange', function () {
         }
       });
 
-      it('gets end weights if called after the end time', async () => {
-        await advanceToTimestamp(endTime.add(MINUTE));
+      it.only('gets end weights if called after the end time', async () => {
+        const to = endTime.add(MINUTE);
+        console.log('Advancing to timestamp', to.toString());
+        await advanceToTimestamp(to);
         for (let i = 0; i < numValues; i++) {
           const interpolatedWeight = await mock.getInterpolatedValue(startValues[i], endValues[i], startTime, endTime);
 
