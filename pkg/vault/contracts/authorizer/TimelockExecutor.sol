@@ -18,6 +18,8 @@ import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/Address.sol";
 import "./TimelockAuthorizer.sol";
 
 contract TimelockExecutor {
+    using Address for address;
+
     TimelockAuthorizer public immutable authorizer;
 
     constructor() {
@@ -26,6 +28,6 @@ contract TimelockExecutor {
 
     function execute(address target, bytes memory data) external returns (bytes memory result) {
         require(msg.sender == address(authorizer), "ERR_SENDER_NOT_AUTHORIZER");
-        return Address.functionCall(target, data);
+        return target.functionCall(data);
     }
 }
