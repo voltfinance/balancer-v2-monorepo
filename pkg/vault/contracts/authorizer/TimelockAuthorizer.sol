@@ -401,7 +401,7 @@ contract TimelockAuthorizer is IAuthorizer, IAuthentication {
         address where,
         bool allowed
     ) external {
-        bool isAllowed = isRoot(msg.sender) || isGranter(actionId, msg.sender, where);
+        bool isAllowed = isGranter(actionId, msg.sender, where) || isRoot(msg.sender);
         _require(isAllowed, Errors.SENDER_NOT_ALLOWED);
         bytes32 grantPermissionsActionId = getActionId(GRANT_ACTION_ID, actionId);
         (allowed ? _grantPermission : _revokePermission)(grantPermissionsActionId, account, where);
@@ -447,7 +447,7 @@ contract TimelockAuthorizer is IAuthorizer, IAuthentication {
         address where,
         bool allowed
     ) external {
-        bool isAllowed = isRoot(msg.sender) || isRevoker(actionId, msg.sender, where);
+        bool isAllowed = isRevoker(actionId, msg.sender, where) || isRoot(msg.sender);
         _require(isAllowed, Errors.SENDER_NOT_ALLOWED);
         bytes32 revokePermissionsActionId = getActionId(REVOKE_ACTION_ID, actionId);
         (allowed ? _grantPermission : _revokePermission)(revokePermissionsActionId, account, where);
