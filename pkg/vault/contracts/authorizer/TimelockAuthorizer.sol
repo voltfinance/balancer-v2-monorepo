@@ -284,8 +284,10 @@ contract TimelockAuthorizer is IAuthorizer, IAuthentication {
      * @dev Sets the root address to `newRoot`.
      */
     function setRoot(address newRoot) external onlyExecutor {
-        root = newRoot;
-        emit RootSet(newRoot);
+        if (root != newRoot) {
+            root = newRoot;
+            emit RootSet(newRoot);
+        }
     }
 
     /**
@@ -310,8 +312,10 @@ contract TimelockAuthorizer is IAuthorizer, IAuthentication {
         bool isAllowed = actionId == setAuthorizerActionId || delay <= delaysPerActionId[setAuthorizerActionId];
         require(isAllowed, "DELAY_EXCEEDS_SET_AUTHORIZER");
 
-        delaysPerActionId[actionId] = delay;
-        emit ActionDelaySet(actionId, delay);
+        if (delaysPerActionId[actionId] != delay) {
+            delaysPerActionId[actionId] = delay;
+            emit ActionDelaySet(actionId, delay);
+        }
     }
 
     /**
