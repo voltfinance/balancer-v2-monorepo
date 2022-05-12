@@ -161,8 +161,8 @@ contract TimelockAuthorizer is IAuthorizer, IAuthentication {
     /**
      * @dev Returns the vault address.
      */
-    function getVault() external view returns (address) {
-        return address(_vault);
+    function getVault() external view returns (IVault) {
+        return _vault;
     }
 
     /**
