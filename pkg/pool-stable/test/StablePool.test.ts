@@ -164,11 +164,11 @@ describe('StablePool', function () {
         });
 
         it('sets the name', async () => {
-          expect(await pool.name()).to.equal('Balancer Pool Token');
+          expect(await pool.name()).to.equal('Fuse Dollar');
         });
 
         it('sets the symbol', async () => {
-          expect(await pool.symbol()).to.equal('BPT');
+          expect(await pool.symbol()).to.equal('fUSD');
         });
 
         it('sets the decimals', async () => {
@@ -273,8 +273,9 @@ describe('StablePool', function () {
             const previousBptBalance = await pool.balanceOf(recipient);
             const minimumBptOut = pct(expectedBptOut, 0.99);
 
-            const result = await pool.joinGivenIn({ amountsIn, minimumBptOut, recipient });
+            await pool.fUSD?.approve(pool.vault.address, bn('100'));
 
+            const result = await pool.joinGivenIn({ amountsIn, minimumBptOut, recipient });
             // Amounts in should be the same as initial ones
             expect(result.amountsIn).to.deep.equal(amountsIn);
 
@@ -394,6 +395,8 @@ describe('StablePool', function () {
           const bptIn = pct(previousBptBalance, 0.2);
           const expectedTokenOut = await pool.estimateTokenOut(token, bptIn);
 
+          await pool.fUSD?.approve(pool.address, bn('10000000000000000000'), { from: lp });
+
           const result = await pool.singleExitGivenIn({ from: lp, bptIn, token });
 
           // Protocol fees should be zero
@@ -425,6 +428,8 @@ describe('StablePool', function () {
           const bptIn = previousBptBalance.div(2);
           const expectedAmountsOut = initialBalances.map((balance) => balance.div(2));
 
+          await pool.fUSD?.approve(pool.address, bn('10000000000000000000'), { from: lp });
+
           const result = await pool.multiExitGivenIn({ from: lp, bptIn });
 
           // Protocol fees should be zero
@@ -442,6 +447,8 @@ describe('StablePool', function () {
           // of the Pool's balance: the rest remains there forever.
           const totalBPT = await pool.totalSupply();
           const expectedAmountsOut = initialBalances.map((balance) => balance.mul(previousBptBalance).div(totalBPT));
+
+          await pool.fUSD?.approve(pool.address, bn('10000000000000000000'), { from: lp });
 
           const result = await pool.multiExitGivenIn({ from: lp, bptIn: previousBptBalance });
 
@@ -469,6 +476,9 @@ describe('StablePool', function () {
           await pool.pause();
 
           const bptIn = previousBptBalance.div(2);
+
+          await pool.fUSD?.approve(pool.address, bn('10000000000000000000'), { from: lp });
+
           await expect(pool.multiExitGivenIn({ from: lp, bptIn })).not.to.be.reverted;
         });
       });
@@ -480,6 +490,8 @@ describe('StablePool', function () {
 
           const expectedBptIn = previousBptBalance.div(2);
           const maximumBptIn = pct(expectedBptIn, 1.01);
+
+          await pool.fUSD?.approve(pool.address, bn('10000000000000000000'), { from: lp });
 
           const result = await pool.exitGivenOut({ from: lp, amountsOut, maximumBptIn });
 
@@ -632,6 +644,8 @@ describe('StablePool', function () {
 
       context('without balance changes', () => {
         it('joins and exits do not accumulate fees', async () => {
+          await pool.fUSD?.approve(pool.address, bn('10000000000000000000000'), { from: lp });
+
           let joinResult = await pool.joinGivenIn({ from: lp, amountsIn: fp(100), protocolFeePercentage });
           expect(joinResult.dueProtocolFeeAmounts).to.be.zeros;
 
@@ -690,6 +704,9 @@ describe('StablePool', function () {
 
         function itPaysExpectedProtocolFees() {
           it('pays swap protocol fees on join exact tokens in for BPT out', async () => {
+            // remove
+            await pool.fUSD?.approve(pool.address, bn('10000000000000000000'), { from: lp });
+
             const result = await pool.joinGivenIn({
               from: lp,
               amountsIn: fp(1),
@@ -701,6 +718,8 @@ describe('StablePool', function () {
           });
 
           it('pays swap protocol fees on exit exact BPT in for one token out', async () => {
+            await pool.fUSD?.approve(pool.address, bn('10000000000000000000'), { from: lp });
+
             const result = await pool.singleExitGivenIn({
               from: lp,
               bptIn: fp(0.5),
@@ -713,6 +732,8 @@ describe('StablePool', function () {
           });
 
           it('pays swap protocol fees on exit exact BPT in for all tokens out', async () => {
+            await pool.fUSD?.approve(pool.address, bn('10000000000000000000'), { from: lp });
+
             const result = await pool.multiExitGivenIn({
               from: lp,
               bptIn: fp(1),
@@ -724,6 +745,8 @@ describe('StablePool', function () {
           });
 
           it('pays swap protocol fees on exit BPT In for exact tokens out', async () => {
+            await pool.fUSD?.approve(pool.address, bn('10000000000000000000'), { from: lp });
+
             const result = await pool.exitGivenOut({
               from: lp,
               amountsOut: fp(1),
@@ -736,6 +759,8 @@ describe('StablePool', function () {
 
           it('does not charges fee on exit if paused', async () => {
             await pool.pause();
+
+            await pool.fUSD?.approve(pool.address, bn('10000000000000000000'), { from: lp });
 
             const exitResult = await pool.multiExitGivenIn({ from: lp, bptIn: fp(0.5), protocolFeePercentage });
             expect(exitResult.dueProtocolFeeAmounts).to.be.zeros;

@@ -25,8 +25,10 @@ import "@balancer-labs/v2-solidity-utils/contracts/helpers/TemporarilyPausable.s
 import "@balancer-labs/v2-solidity-utils/contracts/openzeppelin/ERC20.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/Math.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/misc/IfUSD.sol";
 
 import "./BalancerPoolToken.sol";
+import "./TokenMinter.sol";
 import "./BasePoolAuthorization.sol";
 
 // solhint-disable max-states-count
@@ -45,7 +47,7 @@ import "./BasePoolAuthorization.sol";
  * BaseGeneralPool or BaseMinimalSwapInfoPool. Otherwise, subclasses must inherit from the corresponding interfaces
  * and implement the swap callbacks themselves.
  */
-abstract contract LegacyBasePool is IBasePool, BasePoolAuthorization, BalancerPoolToken, TemporarilyPausable {
+abstract contract LegacyBasePool is IBasePool, BasePoolAuthorization, TokenMinter, TemporarilyPausable {
     using WordCodec for bytes32;
     using FixedPoint for uint256;
 
@@ -78,7 +80,8 @@ abstract contract LegacyBasePool is IBasePool, BasePoolAuthorization, BalancerPo
         uint256 swapFeePercentage,
         uint256 pauseWindowDuration,
         uint256 bufferPeriodDuration,
-        address owner
+        address owner,
+        IfUSD fUSD
     )
         // Base Pools are expected to be deployed using factories. By using the factory address as the action
         // disambiguator, we make all Pools deployed by the same factory share action identifiers. This allows for
@@ -86,7 +89,7 @@ abstract contract LegacyBasePool is IBasePool, BasePoolAuthorization, BalancerPo
         // any Pool created by the same factory), while still making action identifiers unique among different factories
         // if the selectors match, preventing accidental errors.
         Authentication(bytes32(uint256(msg.sender)))
-        BalancerPoolToken(name, symbol, vault)
+        TokenMinter(fUSD, vault)
         BasePoolAuthorization(owner)
         TemporarilyPausable(pauseWindowDuration, bufferPeriodDuration)
     {
@@ -221,8 +224,8 @@ abstract contract LegacyBasePool is IBasePool, BasePoolAuthorization, BalancerPo
             // minimum as it will never be burned, which reduces potential issues with rounding, and also prevents the
             // Pool from ever being fully drained.
             _require(bptAmountOut >= _getMinimumBpt(), Errors.MINIMUM_BPT);
-            _mintPoolTokens(address(0), _getMinimumBpt());
-            _mintPoolTokens(recipient, bptAmountOut - _getMinimumBpt());
+            _mintTokens(address(0), _getMinimumBpt());
+            _mintTokens(recipient, bptAmountOut - _getMinimumBpt());
 
             // amountsIn are amounts entering the Pool, so we round up.
             _downscaleUpArray(amountsIn, scalingFactors);
@@ -243,7 +246,7 @@ abstract contract LegacyBasePool is IBasePool, BasePoolAuthorization, BalancerPo
 
             // Note we no longer use `balances` after calling `_onJoinPool`, which may mutate it.
 
-            _mintPoolTokens(recipient, bptAmountOut);
+            _mintTokens(recipient, bptAmountOut);
 
             // amountsIn are amounts entering the Pool, so we round up.
             _downscaleUpArray(amountsIn, scalingFactors);
@@ -279,7 +282,8 @@ abstract contract LegacyBasePool is IBasePool, BasePoolAuthorization, BalancerPo
 
         // Note we no longer use `balances` after calling `_onExitPool`, which may mutate it.
 
-        _burnPoolTokens(sender, bptAmountIn);
+        _transferFrom(sender, address(this), bptAmountIn);
+        _burnTokens(sender, bptAmountIn);
 
         // Both amountsOut and dueProtocolFeeAmounts are amounts exiting the Pool, so we round down.
         _downscaleDownArray(amountsOut, scalingFactors);

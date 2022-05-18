@@ -60,6 +60,7 @@ export default class StablePool {
   vault: Vault;
   meta: boolean;
   owner?: SignerWithAddress;
+  fUSD?: Token;
 
   static async create(params: RawStablePoolDeployment = {}): Promise<StablePool> {
     return StablePoolDeployer.deploy(params);
@@ -73,7 +74,8 @@ export default class StablePool {
     amplificationParameter: BigNumberish,
     swapFeePercentage: BigNumberish,
     meta: boolean,
-    owner?: SignerWithAddress
+    owner?: SignerWithAddress,
+    fUSD?: Token
   ) {
     this.instance = instance;
     this.poolId = poolId;
@@ -83,6 +85,7 @@ export default class StablePool {
     this.swapFeePercentage = swapFeePercentage;
     this.meta = meta;
     this.owner = owner;
+    this.fUSD = fUSD;
   }
 
   get address(): string {

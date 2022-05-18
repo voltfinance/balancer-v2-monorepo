@@ -20,6 +20,7 @@ import "@balancer-labs/v2-interfaces/contracts/solidity-utils/helpers/BalancerEr
 
 import "@balancer-labs/v2-solidity-utils/contracts/helpers/LogCompression.sol";
 import "@balancer-labs/v2-solidity-utils/contracts/math/FixedPoint.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/misc/IfUSD.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/oracle/PoolPriceOracle.sol";
 
@@ -72,6 +73,7 @@ contract MetaStablePool is StablePool, PoolPriceOracle {
         uint256 bufferPeriodDuration;
         bool oracleEnabled;
         address owner;
+        IfUSD fUSD;
     }
 
     constructor(NewPoolParams memory params)
@@ -84,7 +86,8 @@ contract MetaStablePool is StablePool, PoolPriceOracle {
             params.swapFeePercentage,
             params.pauseWindowDuration,
             params.bufferPeriodDuration,
-            params.owner
+            params.owner,
+            params.fUSD
         )
     {
         _require(params.tokens.length == 2, Errors.NOT_TWO_TOKENS);

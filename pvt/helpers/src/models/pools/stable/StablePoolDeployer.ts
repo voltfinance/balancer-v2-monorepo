@@ -4,6 +4,7 @@ import * as expectEvent from '../../../test/expectEvent';
 import { deploy, deployedAt } from '../../../contract';
 
 import Vault from '../../vault/Vault';
+import Token from '../../tokens/Token';
 import StablePool from './StablePool';
 import VaultDeployer from '../../vault/VaultDeployer';
 import TypesConverter from '../../types/TypesConverter';
@@ -16,14 +17,30 @@ export default {
   async deploy(params: RawStablePoolDeployment): Promise<StablePool> {
     const deployment = TypesConverter.toStablePoolDeployment(params);
     const vault = params.vault ?? (await VaultDeployer.deploy(TypesConverter.toRawVaultDeployment(params)));
-    const pool = await (params.fromFactory ? this._deployFromFactory : this._deployStandalone)(deployment, vault);
+    const fUSD = await deploy('MockfUSD');
+    const fUSDAddress = params.fUSD ?? fUSD.address;
+    const pool = await (params.fromFactory ? this._deployFromFactory : this._deployStandalone)(
+      deployment,
+      vault,
+      fUSDAddress
+    );
 
     const { owner, tokens, amplificationParameter, swapFeePercentage, meta } = deployment;
     const poolId = await pool.getPoolId();
-    return new StablePool(pool, poolId, vault, tokens, amplificationParameter, swapFeePercentage, meta, owner);
+    return new StablePool(
+      pool,
+      poolId,
+      vault,
+      tokens,
+      amplificationParameter,
+      swapFeePercentage,
+      meta,
+      owner,
+      new Token('fuse dollar', 'fUSD', 18, fUSD)
+    );
   },
 
-  async _deployStandalone(params: StablePoolDeployment, vault: Vault): Promise<Contract> {
+  async _deployStandalone(params: StablePoolDeployment, vault: Vault, fUSD: string): Promise<Contract> {
     const {
       tokens,
       amplificationParameter,
@@ -54,6 +71,7 @@ export default {
               bufferPeriodDuration,
               oracleEnabled,
               owner,
+              fUSD,
             },
           ],
           from,
@@ -70,12 +88,13 @@ export default {
             pauseWindowDuration,
             bufferPeriodDuration,
             owner,
+            fUSD,
           ],
           from,
         });
   },
 
-  async _deployFromFactory(params: StablePoolDeployment, vault: Vault): Promise<Contract> {
+  async _deployFromFactory(params: StablePoolDeployment, vault: Vault, fUSD: string): Promise<Contract> {
     const { tokens, amplificationParameter, swapFeePercentage, owner, from } = params;
 
     const factory = await deploy('v2-pool-stable/StablePoolFactory', { args: [vault.address], from });
@@ -85,7 +104,8 @@ export default {
       tokens.addresses,
       amplificationParameter,
       swapFeePercentage,
-      TypesConverter.toAddress(owner)
+      TypesConverter.toAddress(owner),
+      fUSD
     );
     const receipt = await tx.wait();
     const event = expectEvent.inReceipt(receipt, 'PoolCreated');
