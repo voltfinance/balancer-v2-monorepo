@@ -70,6 +70,8 @@ export default {
       mustAllowlistLPs,
       protocolSwapFeePercentage,
       managementSwapFeePercentage,
+      rateProviders,
+      tokenRateCacheDurations,
       owner,
       from,
     } = params;
@@ -137,6 +139,28 @@ export default {
             pauseWindowDuration,
             bufferPeriodDuration,
           ],
+          from,
+        });
+        break;
+      }
+      case WeightedPoolType.SUSTAINABLE_WEIGHTED_POOL: {
+        let newPoolParams = {
+              vault: vault.address,
+              name: NAME,
+              symbol: SYMBOL,
+              tokens: tokens.addresses,
+              normalizedWeights: weights,
+              assetManagers,
+              rateProviders,
+              tokenRateCacheDurations,
+              swapFeePercentage,
+              pauseWindowDuration,
+              bufferPeriodDuration,
+              owner
+            }
+
+        result = deploy('v2-pool-weighted/sustainable/SustainableWeightedPool', {
+          args: [newPoolParams],
           from,
         });
         break;
