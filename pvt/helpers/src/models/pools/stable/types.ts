@@ -23,6 +23,7 @@ export type RawStablePoolDeployment = {
   fromFactory?: boolean;
   oracleEnabled?: boolean;
   meta?: boolean;
+  fUSD?: string;
 };
 
 export type StablePoolDeployment = {

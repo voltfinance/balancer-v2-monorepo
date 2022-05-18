@@ -24,6 +24,7 @@ import "@balancer-labs/v2-solidity-utils/contracts/helpers/WordCodec.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/BaseGeneralPool.sol";
 import "@balancer-labs/v2-pool-utils/contracts/LegacyBaseMinimalSwapInfoPool.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/misc/IfUSD.sol";
 
 import "./StableMath.sol";
 
@@ -85,7 +86,8 @@ contract StablePool is BaseGeneralPool, LegacyBaseMinimalSwapInfoPool, IRateProv
         uint256 swapFeePercentage,
         uint256 pauseWindowDuration,
         uint256 bufferPeriodDuration,
-        address owner
+        address owner,
+        IfUSD fUSD
     )
         LegacyBasePool(
             vault,
@@ -100,7 +102,8 @@ contract StablePool is BaseGeneralPool, LegacyBaseMinimalSwapInfoPool, IRateProv
             swapFeePercentage,
             pauseWindowDuration,
             bufferPeriodDuration,
-            owner
+            owner,
+            fUSD
         )
     {
         _require(amplificationParameter >= StableMath._MIN_AMP, Errors.MIN_AMP);

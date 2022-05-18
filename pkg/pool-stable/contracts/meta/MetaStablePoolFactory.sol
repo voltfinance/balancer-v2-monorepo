@@ -19,6 +19,7 @@ import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/factories/BasePoolSplitCodeFactory.sol";
 import "@balancer-labs/v2-pool-utils/contracts/factories/FactoryWidePauseWindow.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/misc/IfUSD.sol";
 
 import "./MetaStablePool.sol";
 
@@ -39,7 +40,8 @@ contract MetaStablePoolFactory is BasePoolSplitCodeFactory, FactoryWidePauseWind
         uint256[] memory priceRateCacheDuration,
         uint256 swapFeePercentage,
         bool oracleEnabled,
-        address owner
+        address owner,
+        IfUSD fUSD
     ) external returns (address) {
         (uint256 pauseWindowDuration, uint256 bufferPeriodDuration) = getPauseConfiguration();
 
@@ -58,7 +60,8 @@ contract MetaStablePoolFactory is BasePoolSplitCodeFactory, FactoryWidePauseWind
                         pauseWindowDuration: pauseWindowDuration,
                         bufferPeriodDuration: bufferPeriodDuration,
                         oracleEnabled: oracleEnabled,
-                        owner: owner
+                        owner: owner,
+                        fUSD: fUSD
                     })
                 )
             );

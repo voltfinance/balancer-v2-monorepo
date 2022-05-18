@@ -19,6 +19,7 @@ import "@balancer-labs/v2-interfaces/contracts/vault/IVault.sol";
 
 import "@balancer-labs/v2-pool-utils/contracts/factories/BasePoolFactory.sol";
 import "@balancer-labs/v2-pool-utils/contracts/factories/FactoryWidePauseWindow.sol";
+import "@balancer-labs/v2-solidity-utils/contracts/misc/IfUSD.sol";
 
 import "./StablePool.sol";
 
@@ -36,7 +37,8 @@ contract StablePoolFactory is BasePoolFactory, FactoryWidePauseWindow {
         IERC20[] memory tokens,
         uint256 amplificationParameter,
         uint256 swapFeePercentage,
-        address owner
+        address owner,
+        IfUSD fUSD
     ) external returns (address) {
         (uint256 pauseWindowDuration, uint256 bufferPeriodDuration) = getPauseConfiguration();
 
@@ -50,7 +52,8 @@ contract StablePoolFactory is BasePoolFactory, FactoryWidePauseWindow {
                 swapFeePercentage,
                 pauseWindowDuration,
                 bufferPeriodDuration,
-                owner
+                owner,
+                fUSD
             )
         );
         _register(pool);
